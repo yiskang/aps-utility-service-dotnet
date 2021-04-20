@@ -87,7 +87,13 @@ namespace Autodesk.Forge
                     .AllowCredentials()
             );
 
+            app.UseDefaultFiles();
+            app.UseStaticFiles();
+
+            // --- Proxy Setting start ---
             app.UseWebSockets();
+            app.UseRouting();
+            app.UseEndpoints(endpoints => endpoints.MapControllers());
 
             var forgeConfig = forgeOpts.Value;
             var forgeURL = UriHelper.BuildAbsolute(forgeConfig.Scheme, forgeConfig.Host);
@@ -118,9 +124,6 @@ namespace Autodesk.Forge
                                 };
                                 await context.Response.WriteAsync(JsonConvert.SerializeObject(result));
                             }).Build();
-
-            app.UseRouting();
-            app.UseEndpoints(endpoints => endpoints.MapControllers());
 
             app.UseProxies(proxies =>
             {
@@ -180,6 +183,8 @@ namespace Autodesk.Forge
                     );
                 });
             });
+
+            // --- Proxy Setting end ---
         }
     }
 }

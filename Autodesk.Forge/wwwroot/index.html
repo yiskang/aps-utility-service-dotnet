@@ -1,0 +1,79 @@
+<html>
+  <head>
+    <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1, user-scalable=no" />
+    <meta charset="utf-8">
+
+    <link rel="stylesheet" href="https://developer.api.autodesk.com/modelderivative/v2/viewers/7.*/style.min.css" type="text/css">
+    <script src="https://developer.api.autodesk.com/modelderivative/v2/viewers/7.*/viewer3D.min.js"></script>
+
+    <style>
+        body {
+            margin: 0;
+        }
+        #forgeViewer {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            background-color: #F0F8FF;
+        }
+    </style>
+  </head>
+  <body>
+
+      <div id="forgeViewer"></div>
+      <script>
+        function fetchForgeToken( callback ) {
+          fetch( 'http://localhost:5000/api/forge/oauth/token', {
+            method: 'get',
+            headers: new Headers({ 'Content-Type': 'application/json' })
+          })
+          .then( ( response ) => {
+          if( response.status === 200 ) {
+              return response.json();
+          } else {
+              return Promise.reject(
+                new Error( `Failed to fetch token from server (status: ${response.status}, message: ${response.statusText})` )
+              );
+          }
+          })
+          .then( ( data ) => {
+            if( !data ) return Promise.reject( new Error( 'Empty token response' ) );
+
+            callback( data.access_token, data.expires_in );
+          })
+          .catch( ( error ) => console.error( error ) );
+        }
+
+        var viewer;
+        var options = {
+          env: 'MD20ProdUS',
+          getAccessToken: fetchForgeToken,
+        };
+
+        Autodesk.Viewing.Initializer(options, function() {
+          Autodesk.Viewing.endpoint.setEndpointAndApi( 'http://localhost:5000/forge-proxy', 'D3S' );
+
+            var htmlDiv = document.getElementById('forgeViewer');
+            viewer = new Autodesk.Viewing.GuiViewer3D(htmlDiv);
+            var startedCode = viewer.start();
+            if (startedCode > 0) {
+                console.error('Failed to create a Viewer: WebGL not supported.');
+                return;
+            }
+
+            var documentId = 'urn:dXJuOmFkc2sub2JqZWN0czpvcy5vYmplY3Q6ZXh0cmFjdC1hdXRvZGVzay1pby0yMDE3bGt3ZWo3eHBiZ3A2M3g0aGwzMzV5Nm0yNm9ha2dnb2YvcmFjX2Jhc2ljX3NhbXBsZV9wcm9qZWN0LnJ2dA';
+            Autodesk.Viewing.Document.load(documentId, onDocumentLoadSuccess, onDocumentLoadFailure);
+
+            function onDocumentLoadSuccess(viewerDocument) {
+              var defaultModel = viewerDocument.getRoot().getDefaultGeometry();
+              viewerDocument.downloadAecModelData( () => viewer.loadDocumentNode(viewerDocument, defaultModel ) );
+            }
+
+            function onDocumentLoadFailure() {
+                console.error('Failed fetching Forge manifest');
+            }
+
+        });
+      </script>
+  </body>
+</html>
