@@ -1,13 +1,24 @@
-﻿//
+﻿/////////////////////////////////////////////////////////////////////
 // Copyright (c) Autodesk, Inc. All rights reserved
-// Copyright (c) .NET Foundation. All rights reserved.
+// Written by Forge Partner Development
 //
-// Licensed under the Apache License, Version 2.0.
-// See LICENSE in the project root for license information.
-// 
+// Permission to use, copy, modify, and distribute this software in
+// object code form for any purpose and without fee is hereby granted,
+// provided that the above copyright notice appears in all copies and
+// that both that copyright notice and the limited warranty and
+// restricted rights notice below appear in all supporting
+// documentation.
+//
+// AUTODESK PROVIDES THIS PROGRAM "AS IS" AND WITH ALL FAULTS.
+// AUTODESK SPECIFICALLY DISCLAIMS ANY IMPLIED WARRANTY OF
+// MERCHANTABILITY OR FITNESS FOR A PARTICULAR USE.  AUTODESK, INC.
+// DOES NOT WARRANT THAT THE OPERATION OF THE PROGRAM WILL BE
+// UNINTERRUPTED OR ERROR FREE.
+//
 // Forge Proxy Server dotNetCore
 // by Eason Kang - Autodesk Developer Network (ADN)
 //
+/////////////////////////////////////////////////////////////////////
 
 using System;
 using System.Collections.Generic;
@@ -63,7 +74,7 @@ namespace Autodesk.Forge
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env, IOptions<ForgeProxyOptions> forgeOpts)
         {
-             if (env.IsDevelopment())
+            if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
             }
@@ -76,13 +87,17 @@ namespace Autodesk.Forge
                     .AllowCredentials()
             );
 
+            app.UseWebSockets();
+
             var forgeConfig = forgeOpts.Value;
             var forgeURL = UriHelper.BuildAbsolute(forgeConfig.Scheme, forgeConfig.Host);
+            var forgeCdnURL = UriHelper.BuildAbsolute(forgeConfig.Scheme, new HostString("cdn.derivative.autodesk.com"));
+            var forgeCdnWsURL = UriHelper.BuildAbsolute("wss", new HostString("cdn.derivative.autodesk.com"));
             var proxyOpts = HttpProxyOptionsBuilder.Instance
                             .WithBeforeSend((context, message) =>
                             {
-                                var proxyService = context.RequestServices.GetRequiredService<ForgeTokenService>();
-                                var token = proxyService.Token;
+                                var tokenService = context.RequestServices.GetRequiredService<ForgeTokenService>();
+                                var token = tokenService.Token;
 
                                 // Set something that is needed for the downstream endpoint.
                                 message.Headers.Add("X-Forwarded-Host", context.Request.Host.Host);
@@ -106,24 +121,23 @@ namespace Autodesk.Forge
 
             app.UseRouting();
             app.UseEndpoints(endpoints => endpoints.MapControllers());
-            var proxyPrefix = forgeConfig.ProxyUri + "/{**catchall}";
 
             app.UseProxies(proxies =>
             {
-                proxies.Map(proxyPrefix, proxy =>
+                var proxyPrefix = forgeConfig.ProxyUri;
+                proxies.Map(proxyPrefix + "/{**catchall}", proxy =>
                 {
                     proxy.UseHttp((context, args) =>
                     {
                         var queries = context.Request.QueryString;
                         if (queries.HasValue)
                         {
-                            return $"{forgeURL}/{args["catchall"]}{queries.Value}";
+                            return $"{forgeCdnURL}{args["catchall"]}{queries.Value}";
                         }
-                        return $"{forgeURL}/{args["catchall"]}";
+                        return $"{forgeCdnURL}{args["catchall"]}";
                     },
-                    builder =>
-                    {
-                        builder.WithBeforeSend((context, message) =>
+                    builder => builder
+                        .WithBeforeSend((context, message) =>
                         {
                             var proxyService = context.RequestServices.GetRequiredService<ForgeTokenService>();
                             var token = proxyService.Token;
@@ -142,12 +156,28 @@ namespace Autodesk.Forge
                             context.Response.StatusCode = 403;
                             var result = new
                             {
-                                message = "Request cannot be proxyed",
+                                message = "Request cannot be proxied",
                                 reason = exception.ToString()
                             };
                             await context.Response.WriteAsync(JsonConvert.SerializeObject(result));
-                        });
-                    });
+                        })
+                    )
+                    .UseWs((context, args) =>
+                    {
+                        var queries = context.Request.QueryString;
+                        if (queries.HasValue)
+                        {
+                            return $"{forgeCdnWsURL}{args["catchall"]}{queries.Value}";
+                        }
+                        return $"{forgeCdnWsURL}{args["catchall"]}";
+                    },
+                    builder => builder
+                        .WithHandleFailure(async (context, exception) =>
+                        {
+                            context.Response.StatusCode = 599;
+                            await context.Response.WriteAsync("Failure handled.");
+                        })
+                    );
                 });
             });
         }

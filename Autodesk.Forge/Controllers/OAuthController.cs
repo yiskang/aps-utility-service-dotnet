@@ -1,4 +1,4 @@
-﻿/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
 // Copyright (c) Autodesk, Inc. All rights reserved
 // Written by Forge Partner Development
 //
@@ -20,27 +20,24 @@
 //
 /////////////////////////////////////////////////////////////////////
 
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
+using Microsoft.AspNetCore.Mvc;
 
 namespace Autodesk.Forge
 {
-    public class Program
+    public class OAuthController: ControllerBase
     {
-        public static void Main(string[] args)
+        private readonly ForgeTokenService tokenService;
+
+        public OAuthController(ForgeTokenService tokenService)
         {
-            CreateWebHostBuilder(args).Build().Run();
+            this.tokenService = tokenService;
         }
 
-        public static IWebHostBuilder CreateWebHostBuilder(string[] args) =>
-            WebHost.CreateDefaultBuilder(args)
-                .UseStartup<Startup>();
+        [HttpGet]
+        [Route("api/forge/oauth/token")]
+        public IActionResult GetToken()
+        {
+            return new JsonResult(this.tokenService.Token);
+        }
     }
 }
