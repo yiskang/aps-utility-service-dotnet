@@ -23,6 +23,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 
@@ -30,20 +31,10 @@ namespace Autodesk.Forge
 {
     public class Startup
     {
-        public Startup(IHostingEnvironment env)
+        public Startup(IConfiguration configuration)
         {
-            Environment = env;
-
-            var builder = new ConfigurationBuilder()
-                .SetBasePath(env.ContentRootPath)
-                .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
-                .AddJsonFile($"appsettings.{env.EnvironmentName}.json", optional: true)
-                .AddEnvironmentVariables();
-
-            Configuration = builder.Build();
+            Configuration = configuration;
         }
-
-        public IHostingEnvironment Environment { get; set; }
 
         public IConfiguration Configuration { get; }
 
@@ -59,8 +50,8 @@ namespace Autodesk.Forge
                 var clientSecret = Configuration.GetSection("Credentials:ClientSecret").Value;
                 var scope = Configuration.GetSection("Credentials:Scope").Value;
 
-                configureOptions.ClientId = clientId;
-                configureOptions.ClientSecret = clientSecret;
+                configureOptions.ClientId = string.IsNullOrEmpty(clientId) ? Environment.GetEnvironmentVariable("FORGE_CLIENT_ID") : clientId;
+                configureOptions.ClientSecret = string.IsNullOrEmpty(clientSecret) ? Environment.GetEnvironmentVariable("FORGE_CLIENT_SECRET") : clientSecret;
                 configureOptions.Scope = scope;
             });
 
@@ -70,9 +61,9 @@ namespace Autodesk.Forge
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app, IHostingEnvironment env, IOptions<ForgeProxyOptions> forgeOpts)
+        public void Configure(IApplicationBuilder app, IWebHostEnvironment env, IOptions<ForgeProxyOptions> forgeOpts)
         {
-            if (env.IsDevelopment())
+             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
             }
