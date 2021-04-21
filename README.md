@@ -44,22 +44,22 @@ Initialize your viewer app in this way:
 ```JavaScript
 function fetchForgeToken( callback ) {
    fetch( 'http://localhost:5000/api/forge/oauth/token', {
-   method: 'get',
-   headers: new Headers({ 'Content-Type': 'application/json' })
+      method: 'get',
+      headers: new Headers({ 'Content-Type': 'application/json' })
    })
    .then( ( response ) => {
-   if( response.status === 200 ) {
-      return response.json();
-   } else {
-      return Promise.reject(
-         new Error( `Failed to fetch token from server (status: ${response.status}, message: ${response.statusText})` )
-      );
-   }
+      if( response.status === 200 ) {
+         return response.json();
+      } else {
+         return Promise.reject(
+            new Error( `Failed to fetch token from server (status: ${response.status}, message: ${response.statusText})` )
+         );
+      }
    })
    .then( ( data ) => {
-   if( !data ) return Promise.reject( new Error( 'Empty token response' ) );
+      if( !data ) return Promise.reject( new Error( 'Empty token response' ) );
 
-   callback( data.access_token, data.expires_in );
+      callback( data.access_token, data.expires_in );
    })
    .catch( ( error ) => console.error( error ) );
 }
@@ -78,6 +78,7 @@ Autodesk.Viewing.Initializer( options, () => {
 ```
 
 **Note. 1** See [Autodesk.Forge/wwwroot/index.html](/Autodesk.Forge/wwwroot/index.html) for the full example
+
 **Note. 2**
 
    1. Replace `documentId` to your own URN before playing with this project.
