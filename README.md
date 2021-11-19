@@ -66,12 +66,18 @@ function fetchForgeToken( callback ) {
 
 const options = {
    env: 'MD20ProdUS',
+   api: 'D3S',
    getAccessToken: fetchForgeToken, //!<<< Workaround: Get `viewable:read` access token for SVF2 model loader
 };
 
+if (LMV_VIEWER_VERSION >= '7.48') {
+   options.env = 'AutodeskProduction2';
+   options.api = 'streamingV2';
+}
+
 Autodesk.Viewing.Initializer( options, () => {
   // Change derivative endpoint to Proxy endpoint
-  Autodesk.Viewing.endpoint.setEndpointAndApi( 'http://localhost:5000/forge-proxy', 'D3S' );
+  Autodesk.Viewing.endpoint.setEndpointAndApi('http://localhost:5000/forge-proxy', options.api);
 
   Autodesk.Viewing.Document.load(documentId, onDocumentLoadSuccess, onDocumentLoadFailure);
 });
