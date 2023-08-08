@@ -17,6 +17,7 @@ using System.Threading.Tasks;
 using AspNetCore.Proxy;
 using AspNetCore.Proxy.Options;
 using Autodesk.Forge.Models;
+using dotenv.net;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
@@ -34,6 +35,8 @@ namespace Autodesk.Forge
         public Startup(IConfiguration configuration)
         {
             Configuration = configuration;
+            // READ APS credentials from .dev or app settings
+            DotEnv.Load();
         }
 
         public IConfiguration Configuration { get; }
@@ -46,8 +49,9 @@ namespace Autodesk.Forge
 
             services.Configure<ForgeProxyOptions>(configureOptions =>
             {
-                var clientId = Configuration.GetSection("Credentials:ClientId").Value;
-                var clientSecret = Configuration.GetSection("Credentials:ClientSecret").Value;
+                var envConfiguration = DotEnv.Read();
+                var clientId = Configuration.GetSection("Credentials:ClientId").Value ?? envConfiguration["FORGE_CLIENT_ID"];
+                var clientSecret = Configuration.GetSection("Credentials:ClientSecret").Value ?? envConfiguration["FORGE_CLIENT_ID"];
                 var scope = Configuration.GetSection("Credentials:Scope").Value;
 
                 configureOptions.ClientId = string.IsNullOrEmpty(clientId) ? Environment.GetEnvironmentVariable("FORGE_CLIENT_ID") : clientId;

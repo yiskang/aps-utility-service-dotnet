@@ -13,6 +13,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
+using System.Text;
 using System.Threading.Tasks;
 using Autodesk.Forge.Models;
 using Microsoft.AspNetCore.Http.Extensions;
@@ -56,15 +57,18 @@ namespace Autodesk.Forge
 
             var opts = this.Options;
 
-            var uri = new Uri(UriHelper.BuildAbsolute(opts.Scheme, opts.Host, "/authentication/v1/authenticate"));
+            var uri = new Uri(UriHelper.BuildAbsolute(opts.Scheme, opts.Host, "/authentication/v2/token"));
             requestMessage.Headers.Host = uri.Authority;
             requestMessage.RequestUri = uri;
             requestMessage.Method = HttpMethod.Post;
 
+            var encodedKey = Convert.ToBase64String(Encoding.GetEncoding("ISO-8859-1")
+                            .GetBytes(opts.ClientId + ":" + opts.ClientSecret));
+
+            requestMessage.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", encodedKey);
+
             var content = new FormUrlEncodedContent(new[]
             {
-                new KeyValuePair<string, string>("client_id", opts.ClientId),
-                new KeyValuePair<string, string>("client_secret", opts.ClientSecret),
                 new KeyValuePair<string, string>("grant_type", "client_credentials"),
                 new KeyValuePair<string, string>("scope", opts.Scope),
             });
