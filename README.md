@@ -1,5 +1,5 @@
 
-![.NET](https://img.shields.io/badge/.NET%20Standard-2.0-blue.svg)
+![.NET](https://img.shields.io/badge/.NET-7.0-blue.svg)
 ![Platforms](https://img.shields.io/badge/platform-windows%20%7C%20osx%20%7C%20linux-lightgray.svg)
 [![License](http://img.shields.io/:license-mit-blue.svg)](http://opensource.org/licenses/MIT)
 
@@ -7,31 +7,35 @@
 
 ## Overview
 
-This sample is demonstrating how to host a proxy server with [AspNetCore.Proxy](https://github.com/twitchax/AspNetCore.Proxy) to forward all requests from the APS Viewer to this backend without showing access token in your viewer frontend.
+This sample is demonstrating how to host a proxy server with [AspNetCore.Proxy](https://github.com/twitchax/AspNetCore.Proxy) to forward all requests from the APS Viewer to this backend without showing access token in your viewer frontend for viewing SVF model (not SVF2).
 
 ## Requirements
 
-* asp.net core 2.2 or later
+* .net 7.0 or later
 
 <a name="setup"></a>
+
 ## Setup
 
 1. Download this repo anywhere you want
 3. Execute 'dotnet restore', this command will download and install the required node modules automatically for you. <br />
+
    ```bash
    dotnet restore
    ```
 
 <a name="UseOfTheSample"></a>
+
 ## Use of the sample
 
 Run the server <br />
+
    ```bash
    dotnet build
    dotnet run
    ```
 
-- Configure viewer endpoint
+* Configure viewer endpoint
 Initialize your viewer app in this way:
 
 ```JavaScript
