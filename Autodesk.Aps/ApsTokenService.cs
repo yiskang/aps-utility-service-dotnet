@@ -1,13 +1,20 @@
-﻿//
+﻿/////////////////////////////////////////////////////////////////////
 // Copyright (c) Autodesk, Inc. All rights reserved
-// Copyright (c) .NET Foundation. All rights reserved.
+// Written by Developer Advocacy and Support
 //
-// Licensed under the Apache License, Version 2.0.
-// See LICENSE in the project root for license information.
-// 
-// Forge Proxy Server dotNetCore
-// by Eason Kang - Autodesk Developer Network (ADN)
+// Permission to use, copy, modify, and distribute this software in
+// object code form for any purpose and without fee is hereby granted,
+// provided that the above copyright notice appears in all copies and
+// that both that copyright notice and the limited warranty and
+// restricted rights notice below appear in all supporting
+// documentation.
 //
+// AUTODESK PROVIDES THIS PROGRAM "AS IS" AND WITH ALL FAULTS.
+// AUTODESK SPECIFICALLY DISCLAIMS ANY IMPLIED WARRANTY OF
+// MERCHANTABILITY OR FITNESS FOR A PARTICULAR USE.  AUTODESK, INC.
+// DOES NOT WARRANT THAT THE OPERATION OF THE PROGRAM WILL BE
+// UNINTERRUPTED OR ERROR FREE.
+/////////////////////////////////////////////////////////////////////
 
 using System;
 using System.Collections.Generic;
@@ -15,30 +22,31 @@ using System.Linq;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
-using Autodesk.Forge.Models;
+using Autodesk.APS.Models;
+using Autodesk.Aps.Models;
 using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 
-namespace Autodesk.Forge
+namespace Autodesk.Aps
 {
-    public class ForgeTokenService
+    public class ApsTokenService
     {
         public HttpClient Client { get; private set; }
 
-        public ForgeProxyOptions Options { get; private set; }
+        public ApsProxyOptions Options { get; private set; }
 
-        private ForgeToken token;
+        private ApsToken token;
 
         private DateTime expiration;
 
-        public ForgeTokenService(IOptions<ForgeProxyOptions> options)
+        public ApsTokenService(IOptions<ApsProxyOptions> options)
         {
             Client = new HttpClient(new HttpClientHandler { AllowAutoRedirect = false, UseCookies = false });
             Options = options.Value;
         }
 
-        public ForgeToken Token
+        public ApsToken Token
         {
             get
             {
@@ -51,7 +59,7 @@ namespace Autodesk.Forge
             }
         }
 
-        internal async Task<ForgeToken> FetchToken()
+        internal async Task<ApsToken> FetchToken()
         {
             var requestMessage = new HttpRequestMessage();
 
@@ -76,7 +84,7 @@ namespace Autodesk.Forge
 
             var result = await Client.SendAsync(requestMessage, HttpCompletionOption.ResponseHeadersRead);
             var json = await result.Content.ReadAsStringAsync();
-            return JsonConvert.DeserializeObject<ForgeToken>(json);
+            return JsonConvert.DeserializeObject<ApsToken>(json);
         }
     }
 }

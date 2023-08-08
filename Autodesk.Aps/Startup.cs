@@ -1,13 +1,20 @@
-﻿//
+﻿/////////////////////////////////////////////////////////////////////
 // Copyright (c) Autodesk, Inc. All rights reserved
-// Copyright (c) .NET Foundation. All rights reserved.
+// Written by Developer Advocacy and Support
 //
-// Licensed under the Apache License, Version 2.0.
-// See LICENSE in the project root for license information.
-// 
-// Forge Proxy Server dotNetCore
-// by Eason Kang - Autodesk Developer Network (ADN)
+// Permission to use, copy, modify, and distribute this software in
+// object code form for any purpose and without fee is hereby granted,
+// provided that the above copyright notice appears in all copies and
+// that both that copyright notice and the limited warranty and
+// restricted rights notice below appear in all supporting
+// documentation.
 //
+// AUTODESK PROVIDES THIS PROGRAM "AS IS" AND WITH ALL FAULTS.
+// AUTODESK SPECIFICALLY DISCLAIMS ANY IMPLIED WARRANTY OF
+// MERCHANTABILITY OR FITNESS FOR A PARTICULAR USE.  AUTODESK, INC.
+// DOES NOT WARRANT THAT THE OPERATION OF THE PROGRAM WILL BE
+// UNINTERRUPTED OR ERROR FREE.
+/////////////////////////////////////////////////////////////////////
 
 using System;
 using System.Collections.Generic;
@@ -16,7 +23,7 @@ using System.Net.Http.Headers;
 using System.Threading.Tasks;
 using AspNetCore.Proxy;
 using AspNetCore.Proxy.Options;
-using Autodesk.Forge.Models;
+using Autodesk.Aps.Models;
 using dotenv.net;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -28,7 +35,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 
-namespace Autodesk.Forge
+namespace Autodesk.Aps
 {
     public class Startup
     {
@@ -47,25 +54,25 @@ namespace Autodesk.Forge
         {
             services.AddCors();
 
-            services.Configure<ForgeProxyOptions>(configureOptions =>
+            services.Configure<ApsProxyOptions>(configureOptions =>
             {
                 var envConfiguration = DotEnv.Read();
-                var clientId = Configuration.GetSection("Credentials:ClientId").Value ?? envConfiguration["FORGE_CLIENT_ID"];
-                var clientSecret = Configuration.GetSection("Credentials:ClientSecret").Value ?? envConfiguration["FORGE_CLIENT_ID"];
+                var clientId = Configuration.GetSection("Credentials:ClientId").Value ?? envConfiguration["APS_CLIENT_ID"];
+                var clientSecret = Configuration.GetSection("Credentials:ClientSecret").Value ?? envConfiguration["APS_CLIENT_ID"];
                 var scope = Configuration.GetSection("Credentials:Scope").Value;
 
-                configureOptions.ClientId = string.IsNullOrEmpty(clientId) ? Environment.GetEnvironmentVariable("FORGE_CLIENT_ID") : clientId;
-                configureOptions.ClientSecret = string.IsNullOrEmpty(clientSecret) ? Environment.GetEnvironmentVariable("FORGE_CLIENT_SECRET") : clientSecret;
+                configureOptions.ClientId = string.IsNullOrEmpty(clientId) ? Environment.GetEnvironmentVariable("APS_CLIENT_ID") : clientId;
+                configureOptions.ClientSecret = string.IsNullOrEmpty(clientSecret) ? Environment.GetEnvironmentVariable("APS_CLIENT_SECRET") : clientSecret;
                 configureOptions.Scope = scope;
             });
 
-            services.AddSingleton<ForgeTokenService>();
+            services.AddSingleton<ApsTokenService>();
             services.AddProxies();
             services.AddMvc().AddNewtonsoftJson();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app, IWebHostEnvironment env, IOptions<ForgeProxyOptions> forgeOpts)
+        public void Configure(IApplicationBuilder app, IWebHostEnvironment env, IOptions<ApsProxyOptions> apsOpts)
         {
              if (env.IsDevelopment())
             {
@@ -80,12 +87,12 @@ namespace Autodesk.Forge
                     .AllowCredentials()
             );
 
-            var forgeConfig = forgeOpts.Value;
-            var forgeURL = UriHelper.BuildAbsolute(forgeConfig.Scheme, forgeConfig.Host);
+            var apsConfig = apsOpts.Value;
+            var apsURL = UriHelper.BuildAbsolute(apsConfig.Scheme, apsConfig.Host);
             var proxyOpts = HttpProxyOptionsBuilder.Instance
                             .WithBeforeSend((context, message) =>
                             {
-                                var proxyService = context.RequestServices.GetRequiredService<ForgeTokenService>();
+                                var proxyService = context.RequestServices.GetRequiredService<ApsTokenService>();
                                 var token = proxyService.Token;
 
                                 // Set something that is needed for the downstream endpoint.
@@ -110,7 +117,7 @@ namespace Autodesk.Forge
 
             app.UseRouting();
             app.UseEndpoints(endpoints => endpoints.MapControllers());
-            var proxyPrefix = forgeConfig.ProxyUri + "/{**catchall}";
+            var proxyPrefix = apsConfig.ProxyUri + "/{**catchall}";
 
             app.UseProxies(proxies =>
             {
@@ -121,15 +128,15 @@ namespace Autodesk.Forge
                         var queries = context.Request.QueryString;
                         if (queries.HasValue)
                         {
-                            return $"{forgeURL}/{args["catchall"]}{queries.Value}";
+                            return $"{apsURL}/{args["catchall"]}{queries.Value}";
                         }
-                        return $"{forgeURL}/{args["catchall"]}";
+                        return $"{apsURL}/{args["catchall"]}";
                     },
                     builder =>
                     {
                         builder.WithBeforeSend((context, message) =>
                         {
-                            var proxyService = context.RequestServices.GetRequiredService<ForgeTokenService>();
+                            var proxyService = context.RequestServices.GetRequiredService<ApsTokenService>();
                             var token = proxyService.Token;
 
                             // Set something that is needed for the downstream endpoint.

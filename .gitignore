@@ -470,4 +470,6 @@ Temporary Items
 ### dotenv ###
 .env
 
+!Autodesk.Aps/
+
 # End of https://www.toptal.com/developers/gitignore/api/macos,visualstudiocode

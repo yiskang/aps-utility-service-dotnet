@@ -15,7 +15,7 @@
         "ASPNETCORE_ENVIRONMENT": "Development"
       }
     },
-    "Autodesk.Forge": {
+    "Autodesk.Aps": {
       "commandName": "Project",
       "launchBrowser": false,
       "environmentVariables": {
