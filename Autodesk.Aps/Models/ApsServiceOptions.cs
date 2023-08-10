@@ -23,7 +23,7 @@ namespace Autodesk.Aps.Models
     /// <summary>
     /// Shared Proxy Options
     /// </summary>
-    public class ApsProxyOptions
+    public class ApsServiceOptions
     {
         private static HostString HOST = new HostString("developer.api.autodesk.com");
 

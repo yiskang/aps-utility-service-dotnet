@@ -33,13 +33,13 @@ namespace Autodesk.Aps
     {
         public HttpClient Client { get; private set; }
 
-        public ApsProxyOptions Options { get; private set; }
+        public ApsServiceOptions Options { get; private set; }
 
         private ApsToken token;
 
         private ApsToken internalToken;
 
-        public ApsTokenService(IOptions<ApsProxyOptions> options)
+        public ApsTokenService(IOptions<ApsServiceOptions> options)
         {
             Client = new HttpClient(new HttpClientHandler { AllowAutoRedirect = false, UseCookies = false });
             Options = options.Value;

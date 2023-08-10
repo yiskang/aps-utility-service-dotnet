@@ -54,16 +54,18 @@ namespace Autodesk.Aps
         {
             services.AddCors();
 
-            services.Configure<ApsProxyOptions>(configureOptions =>
+            services.Configure<ApsServiceOptions>(configureOptions =>
             {
                 var envConfiguration = DotEnv.Read();
                 var clientId = Configuration.GetSection("Credentials:ClientId").Value ?? envConfiguration["APS_CLIENT_ID"];
-                var clientSecret = Configuration.GetSection("Credentials:ClientSecret").Value ?? envConfiguration["APS_CLIENT_ID"];
-                var scope = Configuration.GetSection("Credentials:Scope").Value;
+                var clientSecret = Configuration.GetSection("Credentials:ClientSecret").Value ?? envConfiguration["APS_CLIENT_SECRET"];
+                var scope = Configuration.GetSection("Credentials:Scope").Value ?? envConfiguration["APS_SCOPE"];
+                var internalScope = Configuration.GetSection("Credentials:InternalScope").Value ?? envConfiguration["APS_INTERNAL_SCOPE"];
 
                 configureOptions.ClientId = string.IsNullOrEmpty(clientId) ? Environment.GetEnvironmentVariable("APS_CLIENT_ID") : clientId;
                 configureOptions.ClientSecret = string.IsNullOrEmpty(clientSecret) ? Environment.GetEnvironmentVariable("APS_CLIENT_SECRET") : clientSecret;
                 configureOptions.Scope = scope;
+                configureOptions.InternalScope = internalScope;
             });
 
             services.AddSingleton<ApsTokenService>();
@@ -72,7 +74,7 @@ namespace Autodesk.Aps
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app, IWebHostEnvironment env, IOptions<ApsProxyOptions> apsOpts)
+        public void Configure(IApplicationBuilder app, IWebHostEnvironment env, IOptions<ApsServiceOptions> apsOpts)
         {
              if (env.IsDevelopment())
             {
