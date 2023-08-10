@@ -30,7 +30,7 @@ namespace Autodesk.Aps.Models
         /// <summary>
         /// Gets the compressed size of the entry in the zip archive.
         /// </summary>
-        public long CompressedLength { get; set; }
+        public long CompressedSize { get; set; }
         /// <summary>
         /// The 32-bit Cyclic Redundant Check.
         /// </summary>
@@ -51,7 +51,7 @@ namespace Autodesk.Aps.Models
         /// <summary>
         /// Gets the uncompressed size of the entry in the zip archive.
         /// </summary>
-        public long Length { get; set; }
+        public long Size { get; set; }
         /// <summary>
         /// Gets the file name of the entry in the zip archive.
         /// </summary>
