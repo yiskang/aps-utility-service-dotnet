@@ -27,6 +27,7 @@ using System.IO;
 using System.IO.Compression;
 using Autodesk.Forge;
 using Newtonsoft.Json;
+using System.Net;
 
 namespace Autodesk.Aps.Controllers
 {
@@ -34,9 +35,32 @@ namespace Autodesk.Aps.Controllers
     [Route("api/[controller]")]
     public class ExtractController : ControllerBase
     {
+        readonly ApsTokenService tokenService;
+
+        public ExtractController(ApsTokenService tokenService)
+        {
+            this.tokenService = tokenService;
+        }
+
+        /// <summary>
+        /// Extract SVF derivative files from APS Model Derivative service.
+        /// </summary>
         [HttpGet("{urn}/derivatives")]
         public async Task<IActionResult> GetDerivatives([FromRoute] string urn, [FromQuery] string accessToken, [FromQuery] bool deleteAfterDownload = true)
         {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(urn))
+                    return StatusCode((int)HttpStatusCode.Forbidden, "Invalid URN parameter");
+
+                if (string.IsNullOrWhiteSpace(accessToken))
+                    accessToken = this.tokenService.InternalToken.AccessToken;
+            }
+            catch (Exception ex)
+            {
+                return StatusCode((int)HttpStatusCode.InternalServerError, ex.Message);
+            }
+
             string folderToSave = Path.Combine(Directory.GetCurrentDirectory(), "tmp", urn);
 
             if (!Directory.Exists(folderToSave))
@@ -140,6 +164,33 @@ namespace Autodesk.Aps.Controllers
             {
                 System.Diagnostics.Trace.WriteLine(ex.Message);
                 return NotFound($"Failed to cerate zip for extracted derivatives");
+            }
+        }
+
+        /// <summary>
+        /// Extract file list from a composite Revit Cloud Worksharing design (i.e. ZIP package)
+        /// </summary>
+        [HttpGet("{objectId}/objects:list")]
+        public async Task<IActionResult> GetFileListFromCompositeDesign([FromRoute] string objectId, [FromQuery] string accessToken)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(objectId))
+                    return StatusCode((int)HttpStatusCode.Forbidden, "Invalid objectId parameter");
+
+                if (string.IsNullOrWhiteSpace(accessToken))
+                {
+                    var token = this.tokenService.InternalToken;
+                    accessToken = token.AccessToken;
+                }
+
+                var decodedObjectId = System.Web.HttpUtility.UrlDecode(objectId);
+                var fileList = await CompositeDesignExtractUtil.ListContents(decodedObjectId, accessToken);
+                return Ok(fileList);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode((int)HttpStatusCode.InternalServerError, ex.Message);
             }
         }
     }

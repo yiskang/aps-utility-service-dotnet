@@ -48,6 +48,11 @@ namespace Autodesk.Aps.Models
         public string Scope { get; set; } = "viewables:read";
 
         /// <summary>
+        /// Autodesk APS OAuth scope for non-proxy services
+        /// </summary>
+        public string InternalScope { get; set; } = "data:read";
+
+        /// <summary>
         /// Destination uri scheme
         /// </summary>
         public string Scheme

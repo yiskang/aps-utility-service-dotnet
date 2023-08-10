@@ -16,9 +16,10 @@
 // UNINTERRUPTED OR ERROR FREE.
 /////////////////////////////////////////////////////////////////////
 
+using System;
 using Newtonsoft.Json;
 
-namespace Autodesk.APS.Models
+namespace Autodesk.Aps.Models
 {
     public class ApsToken
     {
@@ -30,5 +31,8 @@ namespace Autodesk.APS.Models
 
         [JsonProperty("expires_in")]
         public int ExpiresIn { get; set; }
+
+        [JsonIgnore]
+        public DateTime Expiration { get; internal set; }
     }
 }

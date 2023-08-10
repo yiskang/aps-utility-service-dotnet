@@ -132,12 +132,7 @@ namespace Autodesk.Aps.Libs
 
         public static async Task<RestResponse> DownloadDerivativeAsync(string derivativeUrl, string accessToken)
         {
-            var options = new RestClientOptions(BASE_URL);
-
-            // if (derivativeUrl.IndexOf(".gz") > -1)
-            //     options.AutomaticDecompression = DecompressionMethods.None;
-
-            var client = new RestClient(options);
+            var client = new RestClient(BASE_URL);
             RestRequest request = new RestRequest(derivativeUrl, Method.Get);
             request.AddHeader("Authorization", "Bearer " + accessToken);
             request.AddHeader("Accept-Encoding", "gzip, deflate");

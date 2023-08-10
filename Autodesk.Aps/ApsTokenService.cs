@@ -22,7 +22,6 @@ using System.Linq;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
-using Autodesk.APS.Models;
 using Autodesk.Aps.Models;
 using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.Extensions.Options;
@@ -38,7 +37,7 @@ namespace Autodesk.Aps
 
         private ApsToken token;
 
-        private DateTime expiration;
+        private ApsToken internalToken;
 
         public ApsTokenService(IOptions<ApsProxyOptions> options)
         {
@@ -50,16 +49,31 @@ namespace Autodesk.Aps
         {
             get
             {
-                if (token == null || DateTime.Now >= expiration)
+                if (token == null || DateTime.Now >= token.Expiration)
                 {
-                    token = this.FetchToken().Result;
-                    expiration = DateTime.Now.AddSeconds(token.ExpiresIn - 600);
+                    var opts = this.Options;
+                    token = this.FetchToken(opts.Scope).Result;
+                    token.Expiration = DateTime.Now.AddSeconds(token.ExpiresIn - 600);
                 }
                 return token;
             }
         }
 
-        internal async Task<ApsToken> FetchToken()
+        public ApsToken InternalToken
+        {
+            get
+            {
+                if (internalToken == null || DateTime.Now >= internalToken.Expiration)
+                {
+                    var opts = this.Options;
+                    internalToken = this.FetchToken(opts.InternalScope).Result;
+                    internalToken.Expiration = DateTime.Now.AddSeconds(internalToken.ExpiresIn - 600);
+                }
+                return internalToken;
+            }
+        }
+
+        internal async Task<ApsToken> FetchToken(string scopes)
         {
             var requestMessage = new HttpRequestMessage();
 
@@ -78,7 +92,7 @@ namespace Autodesk.Aps
             var content = new FormUrlEncodedContent(new[]
             {
                 new KeyValuePair<string, string>("grant_type", "client_credentials"),
-                new KeyValuePair<string, string>("scope", opts.Scope),
+                new KeyValuePair<string, string>("scope", scopes),
             });
             requestMessage.Content = content;
 
