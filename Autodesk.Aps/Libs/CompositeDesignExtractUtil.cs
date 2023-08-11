@@ -62,6 +62,56 @@ namespace Autodesk.Aps.Libs
             var response = await client.ExecuteAsync(request);
             return response;
         }
+        /// <summary>
+        /// Create a temporary ZIP file
+        /// </summary>
+        /// <param name="fileDownloadURL">The S3 download URL for the composite design (i.e. ZIP)</param>
+        /// <param name="fileFullSize">The ZIP package file size</param>
+        /// <param name="fileOffset">The bytes offset for that target file (ZIP entry)</param>
+        /// <param name="fileSize">The compressedSize in bytes for that target file (ZIP entry)</param>
+        /// <returns></returns>
+        private static async Task<string> CreateTempZipFileAsync(string fileDownloadURL, int fileFullSize, int fileOffset = 0, int? fileSize = null)
+        {
+            int chunkSize = 4 * 1024; // only need 16k bytes of data
+            int zipHeaderOffset = 128;
+            var downloadURL = fileDownloadURL;
+            RestResponse fileResponse = null;
+
+            try
+            {
+                // Fetch ZIP header and footer
+                int footerOffset = Convert.ToInt32(fileFullSize - chunkSize);
+
+                var zipHeaderResponse = await FetchFileByRangeAsync(downloadURL, 0, chunkSize);
+                var zipFooterResponse = await FetchFileByRangeAsync(downloadURL, footerOffset, chunkSize);
+
+                if (fileSize.HasValue)
+                    fileResponse = await FetchFileByRangeAsync(downloadURL, fileOffset, fileSize.Value);
+
+                var zipFilename = "tmp-" + Guid.NewGuid() + ".zip";
+                string zipPath = Path.Combine(Directory.GetCurrentDirectory(), "tmp", zipFilename);
+
+                // Combine ZIP hear and footer data bytes
+                var data = new byte[fileFullSize];
+                Array.Copy(zipHeaderResponse.RawBytes, 0, data, 0, zipHeaderResponse.RawBytes.Length);
+
+                if (fileResponse != null)
+                    Array.Copy(fileResponse.RawBytes, 0, data, fileOffset, fileSize.Value + zipHeaderOffset);
+
+                Array.Copy(zipFooterResponse.RawBytes, 0, data, footerOffset, zipFooterResponse.RawBytes.Length);
+
+                using var fs = new FileStream(zipPath, FileMode.Create, FileAccess.Write);
+                await fs.WriteAsync(data);
+
+                return zipPath;
+            }
+            catch (Exception ex)
+            {
+                var message = $"Cannot create zip: {ex.Message}";
+                System.Diagnostics.Trace.WriteLine(message);
+                throw new InvalidOperationException(message, ex);
+            }
+        }
 
         /// <summary>
         /// https://github.com/wallabyway/bim360-zip-extract/blob/master/server.js#L49C18-L49C31
@@ -89,33 +139,10 @@ namespace Autodesk.Aps.Libs
             var target = response["results"][objectInfo.ObjectKey];
 
             // Fetch ZIP header and footer
-            int chunkSize = 4 * 1024; // only need 16k bytes of data
-            var downloadURL = target.url;
-            var fileSize = target.size;
-            int footerOffset = Convert.ToInt32(fileSize - chunkSize);
+            var downloadURL = Convert.ToString(target.url);
+            var fileSize = Convert.ToInt32(target.size);
 
-            var zipHeaderResponse = await FetchFileByRangeAsync(downloadURL, 0, chunkSize);
-            var zipFooterResponse = await FetchFileByRangeAsync(downloadURL, footerOffset, chunkSize);
-
-            var zipFilename = "tmp-" + Guid.NewGuid() + ".zip";
-            string zipPath = Path.Combine(Directory.GetCurrentDirectory(), "tmp", zipFilename);
-
-            try
-            {
-                // Combine ZIP hear and footer data bytes
-                var data = new byte[fileSize];
-                Array.Copy(zipHeaderResponse.RawBytes, 0, data, 0, zipHeaderResponse.RawBytes.Length);
-                Array.Copy(zipFooterResponse.RawBytes, 0, data, footerOffset, zipFooterResponse.RawBytes.Length);
-
-                using var fs = new FileStream(zipPath, FileMode.Create, FileAccess.Write);
-                await fs.WriteAsync(data);
-            }
-            catch (Exception ex)
-            {
-                var message = $"Cannot create zip: {ex.Message}";
-                System.Diagnostics.Trace.WriteLine(message);
-                throw new InvalidOperationException(message);
-            }
+            string zipPath = await CreateTempZipFileAsync(downloadURL, fileSize);
 
             try
             {
@@ -138,7 +165,7 @@ namespace Autodesk.Aps.Libs
             {
                 var message = $"Cannot read zip: {ex.Message}";
                 System.Diagnostics.Trace.WriteLine(message);
-                throw new InvalidOperationException(message);
+                throw new InvalidOperationException(message, ex);
             }
         }
     }

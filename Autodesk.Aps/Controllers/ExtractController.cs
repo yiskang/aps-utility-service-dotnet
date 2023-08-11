@@ -54,7 +54,10 @@ namespace Autodesk.Aps.Controllers
                     return StatusCode((int)HttpStatusCode.Forbidden, "Invalid URN parameter");
 
                 if (string.IsNullOrWhiteSpace(accessToken))
-                    accessToken = this.tokenService.InternalToken.AccessToken;
+                {
+                    var token = this.tokenService.InternalToken;
+                    accessToken = token.AccessToken;
+                }
             }
             catch (Exception ex)
             {
@@ -190,7 +193,7 @@ namespace Autodesk.Aps.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode((int)HttpStatusCode.InternalServerError, ex.Message);
+                return StatusCode((int)HttpStatusCode.InternalServerError, ex);
             }
         }
     }
