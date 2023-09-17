@@ -89,7 +89,7 @@ namespace Autodesk.Aps.Controllers
                         else
                         {
                             // combine with selected local path
-                            string pathToSave = Path.Combine(folderToSave, resource.LocalPath);
+                            string pathToSave = Path.Combine(folderToSave, "output", resource.LocalPath);
                             if (System.IO.File.Exists(pathToSave))
                                 continue;
 
