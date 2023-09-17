@@ -127,8 +127,8 @@ namespace Autodesk.Aps.Controllers
                     derivativeApi.Configuration.AccessToken = accessToken;
 
                     // get the manifest for the URN
-                    dynamic manifest = await derivativeApi.GetManifestAsync(urn);
-                    var manifestJson = JsonConvert.SerializeObject(manifest);
+                    var manifest = await derivativeApi.GetManifestAsync(urn);
+                    var manifestJson = manifest.ToString();
                     System.IO.File.WriteAllText(Path.Combine(folderToSave, "manifest.json"), manifestJson);
                 }
                 catch (Exception ex)
