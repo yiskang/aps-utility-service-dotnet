@@ -26,11 +26,7 @@ namespace Autodesk.Aps.Models
     public class ApsServiceOptions
     {
         private static HostString HOST = new HostString("developer.api.autodesk.com");
-
-        /// <summary>
-        /// Proxy uri
-        /// </summary>
-        public string ProxyUri { get; set; } = "aps-proxy";
+        private static HostString DERIVATIVE_HOST = new HostString("cdn.derivative.autodesk.com");
 
         /// <summary>
         /// Autodesk APS client id
@@ -71,6 +67,17 @@ namespace Autodesk.Aps.Models
             get
             {
                 return HOST;
+            }
+        }
+
+        /// <summary>
+        /// Destination uri host for Model Derivative service
+        /// </summary>
+        public HostString DerivativeHost
+        {
+            get
+            {
+                return DERIVATIVE_HOST;
             }
         }
     }

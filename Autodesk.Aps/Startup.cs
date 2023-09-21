@@ -89,80 +89,8 @@ namespace Autodesk.Aps
                     .AllowCredentials()
             );
 
-            var apsConfig = apsOpts.Value;
-            var apsURL = UriHelper.BuildAbsolute(apsConfig.Scheme, apsConfig.Host);
-            var proxyOpts = HttpProxyOptionsBuilder.Instance
-                            .WithBeforeSend((context, message) =>
-                            {
-                                var proxyService = context.RequestServices.GetRequiredService<ApsTokenService>();
-                                var token = proxyService.Token;
-
-                                // Set something that is needed for the downstream endpoint.
-                                message.Headers.Add("X-Forwarded-Host", context.Request.Host.Host);
-                                message.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token.AccessToken);
-                                context.Response.Headers.Remove("Content-Type");
-                                context.Response.Headers.Append("Content-Type", "application/json; chartset=utf-8");
-
-                                return Task.CompletedTask;
-                            })
-                            .WithHandleFailure(async (context, exception) =>
-                            {
-                                // Return a custom error response.
-                                context.Response.StatusCode = 403;
-                                var result = new
-                                {
-                                    message = "Request cannot be proxied",
-                                    reason = exception.ToString()
-                                };
-                                await context.Response.WriteAsync(JsonConvert.SerializeObject(result));
-                            }).Build();
-
             app.UseRouting();
             app.UseEndpoints(endpoints => endpoints.MapControllers());
-            var proxyPrefix = apsConfig.ProxyUri + "/{**catchall}";
-
-            app.UseProxies(proxies =>
-            {
-                proxies.Map(proxyPrefix, proxy =>
-                {
-                    proxy.UseHttp((context, args) =>
-                    {
-                        var queries = context.Request.QueryString;
-                        if (queries.HasValue)
-                        {
-                            return $"{apsURL}/{args["catchall"]}{queries.Value}";
-                        }
-                        return $"{apsURL}/{args["catchall"]}";
-                    },
-                    builder =>
-                    {
-                        builder.WithBeforeSend((context, message) =>
-                        {
-                            var proxyService = context.RequestServices.GetRequiredService<ApsTokenService>();
-                            var token = proxyService.Token;
-
-                            // Set something that is needed for the downstream endpoint.
-                            message.Headers.Add("X-Forwarded-Host", context.Request.Host.Host);
-                            message.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token.AccessToken);
-                            context.Response.Headers.Remove("Content-Type");
-                            context.Response.Headers.Append("Content-Type", "application/json; chartset=utf-8");
-
-                            return Task.CompletedTask;
-                        })
-                        .WithHandleFailure(async (context, exception) =>
-                        {
-                            // Return a custom error response.
-                            context.Response.StatusCode = 403;
-                            var result = new
-                            {
-                                message = "Request cannot be proxyed",
-                                reason = exception.ToString()
-                            };
-                            await context.Response.WriteAsync(JsonConvert.SerializeObject(result));
-                        });
-                    });
-                });
-            });
         }
     }
 }
