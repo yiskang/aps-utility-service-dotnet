@@ -142,15 +142,15 @@ namespace Autodesk.Aps.Libs
             var cloudFrontKeyPairIdName = "CloudFront-Key-Pair-Id";
             var cloudFrontSignatureName = "CloudFront-Signature";
 
-            var cloudForntCookies = response.Headers
+            var cloudFrontCookies = response.Headers
                                     .Where(x => x.Name == "Set-Cookie")
                                     .Select(x => x.Value)
                                     .Cast<string>()
                                     .ToList();
 
-            var cloudFrontPolicy = cloudForntCookies.Where(value => value.Contains(cloudFrontPolicyName)).FirstOrDefault()?.Trim().Substring(cloudFrontPolicyName.Length + 1).Split(";").FirstOrDefault();
-            var cloudFrontKeyPairId = cloudForntCookies.Where(value => value.Contains(cloudFrontKeyPairIdName)).FirstOrDefault()?.Trim().Substring(cloudFrontKeyPairIdName.Length + 1).Split(";").FirstOrDefault();
-            var cloudFrontSignature = cloudForntCookies.Where(value => value.Contains(cloudFrontSignatureName)).FirstOrDefault()?.Trim().Substring(cloudFrontSignatureName.Length + 1).Split(";").FirstOrDefault();
+            var cloudFrontPolicy = cloudFrontCookies.Where(value => value.Contains(cloudFrontPolicyName)).FirstOrDefault()?.Trim().Substring(cloudFrontPolicyName.Length + 1).Split(";").FirstOrDefault();
+            var cloudFrontKeyPairId = cloudFrontCookies.Where(value => value.Contains(cloudFrontKeyPairIdName)).FirstOrDefault()?.Trim().Substring(cloudFrontKeyPairIdName.Length + 1).Split(";").FirstOrDefault();
+            var cloudFrontSignature = cloudFrontCookies.Where(value => value.Contains(cloudFrontSignatureName)).FirstOrDefault()?.Trim().Substring(cloudFrontSignatureName.Length + 1).Split(";").FirstOrDefault();
 
             var result = JsonConvert.DeserializeObject<dynamic>(response.Content);
             var downloadURL = $"{result.url}?Key-Pair-Id={cloudFrontKeyPairId}&Signature={cloudFrontSignature}&Policy={cloudFrontPolicy}";
