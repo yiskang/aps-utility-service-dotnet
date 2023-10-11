@@ -8,5 +8,6 @@
     <PackageReference Include="Autodesk.Forge" Version="1.9.8" />
     <PackageReference Include="dotenv.net" Version="3.1.2" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" Version="7.0.9" />
+    <PackageReference Include="MimeMapping" Version="2.0.0" />
   </ItemGroup>
 </Project>

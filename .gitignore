@@ -473,4 +473,7 @@ Temporary Items
 !Autodesk.Aps/
 tmp/
 
+Autodesk.Aps/bubbles/*
+!Autodesk.Aps/bubbles/.gitkeep
+
 # End of https://www.toptal.com/developers/gitignore/api/macos,visualstudiocode

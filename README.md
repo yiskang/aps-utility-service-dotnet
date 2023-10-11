@@ -13,6 +13,7 @@ This sample is demonstrating the following in a set of Web API:
 2. A utility service of the below by single API call
    - Extract file list from composite [Revit Cloud Workshariong model](https://aps.autodesk.com/blog/make-composite-revit-design-work-design-automation-api-revit) that `attributes.extension.isCompositeDesign` is true in the response of Data Management API. (This idea is from https://github.com/wallabyway/bim360-zip-extract)
    - Extract/download SVF model files from APS Model Derivative service.
+3. A Web server serves extracted/download SVF model files so that we don't need to override the `Autodesk.Viewing.endpoint.getItemApi` like the blog post [Consume AEC data with SVFs on your own server](https://aps.autodesk.com/blog/consume-aec-data-svfs-your-own-server).
 
 ## Requirements
 
@@ -52,10 +53,10 @@ This sample is demonstrating the following in a set of Web API:
       };
 
       Autodesk.Viewing.Initializer( options, () => {
-      // Change derivative endpoint to Proxy endpoint
-      Autodesk.Viewing.endpoint.setEndpointAndApi('http://127.0.0.1:5000/api/proxy', 'derivativeV2');
+         // Change derivative endpoint to Proxy endpoint
+         Autodesk.Viewing.endpoint.setEndpointAndApi('http://127.0.0.1:5000/api/proxy', 'derivativeV2');
 
-      Autodesk.Viewing.Document.load(documentId, onDocumentLoadSuccess, onDocumentLoadFailure);
+         Autodesk.Viewing.Document.load(documentId, onDocumentLoadSuccess, onDocumentLoadFailure);
       });
       ```
 </details>
@@ -104,6 +105,28 @@ This sample is demonstrating the following in a set of Web API:
 
       ```bash
       curl --location 'http://127.0.0.1:5000/api/extract/dXJuOmFkc2sub2JqZWN0czpvcy5vYmplY3Q6c2FuZGJveC9yYWNfYmFzaWNfc2FtcGxlX3Byb2plY3QucnZ0/derivaitves'
+      ```
+</details>
+
+<details>
+   <summary>Configure viewer to load extracted/download SVF models from web server</summary>
+
+   1. Configure viewer endpoint
+   2. Initialize your viewer app in this way:
+
+      ```JavaScript
+      const options = {
+         env: 'AutodeskProduction',
+         accessToken: 'eyJhbGciOiJIUzI1NiIsImtpZCI6Imp3dF9zeW1tZXRyaWNfa2V5X2RldiJ9.eyJjbGllbnRfaWQiOiJjWTFqcm1rQXhPSVptbnNsOVhYN0puVURtVEVETGNGeCIsImV4cCI6MTQ4NzU2NzgwMSwic2NvcGUiOlsiZGF0YTpyZWFkIl0sImF1ZCI6Imh0dHBzOi8vYXV0b2Rlc2suY29tL2F1ZC9qd3RleHAzMCIsImp0aSI6InJZcEZZTURyemtMOWZ1ZFdKSVVlVkxucGNWT29BTDg0dFpKbXlmZ29ORW1MakF0YVVtWktRWU1lYUR2UGlnNGsifQ.uzNexXCeu4efGPKGGhHdKxoJDXHAzLb28B2nSjrq_ys' //!<<< Pass a expired token to avoid initializing auth issue on the APS Viewer v7.x
+      };
+
+      Autodesk.Viewing.Initializer( options, () => {
+         // Change derivative endpoint to Proxy endpoint
+         Autodesk.Viewing.endpoint.setEndpointAndApi('http://127.0.0.1:5000/api/bubbles', 'derivativeV2');
+         //Autodesk.Viewing.endpoint.setEndpointAndApi('http://127.0.0.1:5000/api/bubbles', 'modelDerivativeV2');
+
+         Autodesk.Viewing.Document.load(documentId, onDocumentLoadSuccess, onDocumentLoadFailure);
+      });
       ```
 </details>
 
