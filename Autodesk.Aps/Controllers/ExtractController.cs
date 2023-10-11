@@ -36,10 +36,12 @@ namespace Autodesk.Aps.Controllers
     public class ExtractController : ControllerBase
     {
         readonly ApsTokenService tokenService;
+        readonly string folderRootToSave;
 
         public ExtractController(ApsTokenService tokenService)
         {
             this.tokenService = tokenService;
+            this.folderRootToSave = Path.Combine(Directory.GetCurrentDirectory(), "bubbles");
         }
 
         /// <summary>
@@ -64,7 +66,8 @@ namespace Autodesk.Aps.Controllers
                 return StatusCode((int)HttpStatusCode.InternalServerError, ex.Message);
             }
 
-            string folderToSave = Path.Combine(Directory.GetCurrentDirectory(), "tmp", urn);
+        
+            string folderToSave = Path.Combine(this.folderRootToSave, urn);
 
             if (!Directory.Exists(folderToSave))
             {
@@ -141,7 +144,7 @@ namespace Autodesk.Aps.Controllers
             try
             {
                 var zipFilename = $"extracted-derivative-{urn}.zip";
-                var zipPath = Path.Combine(Directory.GetCurrentDirectory(), "tmp", zipFilename);
+                var zipPath = Path.Combine(this.folderRootToSave, zipFilename);
                 if (!System.IO.File.Exists(zipPath))
                     ZipFile.CreateFromDirectory(folderToSave, zipPath);
 
