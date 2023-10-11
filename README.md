@@ -111,8 +111,9 @@ This sample is demonstrating the following in a set of Web API:
 <details>
    <summary>Configure viewer to load extracted/download SVF models from web server</summary>
 
-   1. Configure viewer endpoint
-   2. Initialize your viewer app in this way:
+   1. Ensure extracted/download SVF model files are put under the bubbles folder aside assemblies (DLL) of this project
+   2. Configure viewer endpoint
+   3. Initialize your viewer app in this way:
 
       ```JavaScript
       const options = {
