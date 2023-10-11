@@ -191,7 +191,7 @@ namespace Autodesk.Aps.Controllers
                 }
 
                 var decodedObjectId = System.Web.HttpUtility.UrlDecode(objectId);
-                var fileList = await CompositeDesignExtractUtil.ListContents(decodedObjectId, accessToken);
+                var fileList = await CompositeDesignExtractUtil.ListContents2(decodedObjectId, accessToken);
                 return Ok(fileList);
             }
             catch (Exception ex)

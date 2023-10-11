@@ -28,6 +28,8 @@ using System.Threading.Tasks;
 using RestSharp;
 using Autodesk.Forge;
 using Autodesk.Forge.Model;
+using ICSharpCode.SharpZipLib.Zip;
+using System.Diagnostics;
 
 namespace Autodesk.Aps.Libs
 {
@@ -62,6 +64,7 @@ namespace Autodesk.Aps.Libs
             var response = await client.ExecuteAsync(request);
             return response;
         }
+
         /// <summary>
         /// Create a temporary ZIP file
         /// </summary>
@@ -160,6 +163,60 @@ namespace Autodesk.Aps.Libs
                     Size = entry.Length,
                     Name = entry.Name
                 }).ToList();
+            }
+            catch (Exception ex)
+            {
+                var message = $"Cannot read zip: {ex.Message}";
+                System.Diagnostics.Trace.WriteLine(message);
+                throw new InvalidOperationException(message, ex);
+            }
+        }
+
+        /// <summary>
+        /// https://github.com/wallabyway/bim360-zip-extract/blob/master/server.js#L49C18-L49C31
+        /// https://github.com/wallabyway/bim360-zip-extract/blob/master/server.js#L155
+        /// Change ZIP function
+        /// </summary>
+        public async static Task<List<ZipEntry>> ListContents2(string objectId, string accessToken)
+        {
+            var objectInfo = ExtractObjectInfo(objectId);
+            // Get object download url via OSS Direct-S3 API
+            var objectsApi = new ObjectsApi();
+            objectsApi.Configuration.AccessToken = accessToken;
+
+            List<PostBatchSignedS3DownloadPayloadItem> items = new List<PostBatchSignedS3DownloadPayloadItem>()
+            {
+                new PostBatchSignedS3DownloadPayloadItem(objectInfo.ObjectKey)
+            };
+
+            PostBatchSignedS3DownloadPayload payload = new PostBatchSignedS3DownloadPayload(items);
+
+            dynamic response = await objectsApi.getS3DownloadURLsAsync(
+                objectInfo.BucketKey,
+                payload
+            );
+
+            var target = response["results"][objectInfo.ObjectKey];
+
+            // Fetch ZIP header and footer
+            var downloadURL = Convert.ToString(target.url);
+            var fileSize = Convert.ToInt32(target.size);
+
+            string zipPath = await CreateTempZipFileAsync(downloadURL, fileSize);
+
+            try
+            {
+                // Read ZIP entry data for file lists
+                using var zipFileStream = new FileStream(zipPath, FileMode.Open, FileAccess.Read, FileShare.None, 4096, FileOptions.DeleteOnClose);
+                using ICSharpCode.SharpZipLib.Zip.ZipFile zip = new ICSharpCode.SharpZipLib.Zip.ZipFile(zipFileStream);
+                var entries = new List<ZipEntry>();
+                foreach (ZipEntry entry in zip)
+                {
+                    if (!entry.IsFile) continue;
+
+                    entries.Add(entry);
+                }
+                return entries;
             }
             catch (Exception ex)
             {
