@@ -159,14 +159,17 @@ This sample is demonstrating the following in a set of Web API:
    - Call Web API of this sample like this way, and it will create a ZIP containing all SVF files for the given URN.
 
       ```bash
-      curl --location 'http://127.0.0.1:5000/api/extract/dXJuOmFkc2sub2JqZWN0czpvcy5vYmplY3Q6c2FuZGJveC9yYWNfYmFzaWNfc2FtcGxlX3Byb2plY3QucnZ0/derivaitves'
+      curl --location 'http://127.0.0.1:5000/api/extract/dXJuOmFkc2sub2JqZWN0czpvcy5vYmplY3Q6c2FuZGJveC9yYWNfYmFzaWNfc2FtcGxlX3Byb2plY3QucnZ0/derivatives'
+
+      // To prevent the extracted result being deleted from bubbles folder after downloading the ZIP containing extracted SVF files
+      // curl --location 'http://127.0.0.1:5000/api/extract/dXJuOmFkc2sub2JqZWN0czpvcy5vYmplY3Q6c2FuZGJveC9yYWNfYmFzaWNfc2FtcGxlX3Byb2plY3QucnZ0/derivatives?deleteAfterDownload=false'
       ```
 </details>
 
 <details>
    <summary>Configure viewer to load extracted/download SVF models from web server</summary>
 
-   1. Ensure extracted/download SVF model files are put under the bubbles folder aside assemblies (DLL) of this project
+   1. Ensure extracted/download SVF model files are put under the `bubbles` folder aside assemblies (DLL) of this project
    2. Configure viewer endpoint
    3. Initialize your viewer app in this way:
 

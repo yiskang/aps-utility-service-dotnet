@@ -25,4 +25,4 @@ RUN dotnet publish "Autodesk.Aps.csproj" -c $configuration -o /app/publish /p:Us
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
-ENTRYPOINT ["dotnet", "Autodesk.Aps.Proxy.dll"]
+ENTRYPOINT ["dotnet", "Autodesk.Aps.UtilService.dll"]
