@@ -89,7 +89,7 @@ namespace Autodesk.Aps.Libs
                 var zipFooterResponse = await FetchFileByRangeAsync(downloadURL, footerOffset, chunkSize);
 
                 if (fileSize.HasValue)
-                    fileResponse = await FetchFileByRangeAsync(downloadURL, fileOffset, fileSize.Value);
+                    fileResponse = await FetchFileByRangeAsync(downloadURL, fileOffset, fileSize.Value + zipHeaderOffset);
 
                 var zipFilename = "tmp-" + Guid.NewGuid() + ".zip";
                 string zipPath = Path.Combine(Directory.GetCurrentDirectory(), "tmp", zipFilename);
@@ -99,7 +99,7 @@ namespace Autodesk.Aps.Libs
                 Array.Copy(zipHeaderResponse.RawBytes, 0, data, 0, zipHeaderResponse.RawBytes.Length);
 
                 if (fileResponse != null)
-                    Array.Copy(fileResponse.RawBytes, 0, data, fileOffset, fileSize.Value + zipHeaderOffset);
+                    Array.Copy(fileResponse.RawBytes, 0, data, fileOffset, fileResponse.RawBytes.Length);
 
                 Array.Copy(zipFooterResponse.RawBytes, 0, data, footerOffset, zipFooterResponse.RawBytes.Length);
 
@@ -116,11 +116,7 @@ namespace Autodesk.Aps.Libs
             }
         }
 
-        /// <summary>
-        /// https://github.com/wallabyway/bim360-zip-extract/blob/master/server.js#L49C18-L49C31
-        /// https://github.com/wallabyway/bim360-zip-extract/blob/master/server.js#L155
-        /// </summary>
-        public async static Task<List<Models.ZipArchiveEntry>> ListContents(string objectId, string accessToken)
+        public async static Task<dynamic> GetFileDownloadUrl(string objectId, string accessToken)
         {
             var objectInfo = ExtractObjectInfo(objectId);
             // Get object download url via OSS Direct-S3 API
@@ -139,6 +135,17 @@ namespace Autodesk.Aps.Libs
                 payload
             );
 
+            return response;
+        }
+
+        /// <summary>
+        /// https://github.com/wallabyway/bim360-zip-extract/blob/master/server.js#L49C18-L49C31
+        /// https://github.com/wallabyway/bim360-zip-extract/blob/master/server.js#L155
+        /// </summary>
+        public async static Task<List<Models.ZipArchiveEntry>> ListContents(string objectId, string accessToken)
+        {
+            dynamic response = await GetFileDownloadUrl(objectId, accessToken);
+            var objectInfo = ExtractObjectInfo(objectId);
             var target = response["results"][objectInfo.ObjectKey];
 
             // Fetch ZIP header and footer
@@ -179,23 +186,8 @@ namespace Autodesk.Aps.Libs
         /// </summary>
         public async static Task<List<ZipEntry>> ListContents2(string objectId, string accessToken)
         {
+            dynamic response = await GetFileDownloadUrl(objectId, accessToken);
             var objectInfo = ExtractObjectInfo(objectId);
-            // Get object download url via OSS Direct-S3 API
-            var objectsApi = new ObjectsApi();
-            objectsApi.Configuration.AccessToken = accessToken;
-
-            List<PostBatchSignedS3DownloadPayloadItem> items = new List<PostBatchSignedS3DownloadPayloadItem>()
-            {
-                new PostBatchSignedS3DownloadPayloadItem(objectInfo.ObjectKey)
-            };
-
-            PostBatchSignedS3DownloadPayload payload = new PostBatchSignedS3DownloadPayload(items);
-
-            dynamic response = await objectsApi.getS3DownloadURLsAsync(
-                objectInfo.BucketKey,
-                payload
-            );
-
             var target = response["results"][objectInfo.ObjectKey];
 
             // Fetch ZIP header and footer
@@ -221,6 +213,70 @@ namespace Autodesk.Aps.Libs
             catch (Exception ex)
             {
                 var message = $"Cannot read zip: {ex.Message}";
+                System.Diagnostics.Trace.WriteLine(message);
+                throw new InvalidOperationException(message, ex);
+            }
+        }
+
+        /// <summary>
+        /// https://github.com/wallabyway/bim360-zip-extract/blob/master/server.js#L212
+        /// </summary>
+        public async static Task<string> ExtractFile(string objectId, string filename, int fileSize, int offset, int compressedFileSize, string accessToken)
+        {
+            dynamic response = await GetFileDownloadUrl(objectId, accessToken);
+            var objectInfo = ExtractObjectInfo(objectId);
+            var target = response["results"][objectInfo.ObjectKey];
+
+            // Fetch ZIP header and footer
+            var downloadURL = Convert.ToString(target.url);
+            var fullFileSize = Convert.ToInt32(target.size);
+
+            // now, fetch the exact bytes from bim360, and write to our temp file
+            //var megabyteToDownload = Math.Round((decimal)compressedFileSize / 100000) / 10;
+
+            // var logMsg = $"(downloading {megabyteToDownload} MB) {filename} , zip offset: {offset}";
+            // System.Diagnostics.Trace.WriteLine(logMsg);
+
+            try
+            {
+                string zipPath = await CreateTempZipFileAsync(downloadURL, fullFileSize, offset, compressedFileSize);
+                string fileExtractedPath = Path.Combine(Directory.GetCurrentDirectory(), "tmp", filename);
+
+                try
+                {
+                    // Read ZIP entry data for file lists
+                    using var zipFileStream = new FileStream(zipPath, FileMode.Open, FileAccess.Read, FileShare.None, 4096, FileOptions.DeleteOnClose);
+                    using (ICSharpCode.SharpZipLib.Zip.ZipFile zip = new ICSharpCode.SharpZipLib.Zip.ZipFile(zipFileStream))
+                    {
+                        var fileEntry = zip.GetEntry(filename);
+                        if (fileEntry == null)
+                            throw new InvalidDataException($"Cannot find the `{filename}` in the ZIP");
+
+                        var zipInputStream = zip.GetInputStream(fileEntry);
+                        using (var streamWriter = File.Create(fileExtractedPath))
+                        {
+                            int size = fileSize;
+                            byte[] buffer = new byte[size];
+
+                            while ((size = zipInputStream.Read(buffer, 0, buffer.Length)) > 0)
+                            {
+                                streamWriter.Write(buffer, 0, size);
+                            }
+                        }
+
+                        return fileExtractedPath;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    var message = $"Cannot extract `{filename}` from zip: {ex.Message}";
+                    System.Diagnostics.Trace.WriteLine(message);
+                    throw new InvalidOperationException(message, ex);
+                }
+            }
+            catch (Exception ex)
+            {
+                var message = $"Cannot create a temp zip for extracting`{filename}`: {ex.Message}";
                 System.Diagnostics.Trace.WriteLine(message);
                 throw new InvalidOperationException(message, ex);
             }

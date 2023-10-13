@@ -12,6 +12,7 @@ This sample is demonstrating the following in a set of Web API:
 1. A proxy server with [AspNetCore.Proxy](https://github.com/twitchax/AspNetCore.Proxy) to forward all requests from the APS Viewer to this backend without showing access token in your viewer frontend for viewing SVF model (not SVF2).
 2. A utility service of the below by single API call
    - Extract file list from composite [Revit Cloud Workshariong model](https://aps.autodesk.com/blog/make-composite-revit-design-work-design-automation-api-revit) that `attributes.extension.isCompositeDesign` is true in the response of Data Management API. (This idea is from https://github.com/wallabyway/bim360-zip-extract)
+   - Extract a file from composite [Revit Cloud Workshariong model](https://aps.autodesk.com/blog/make-composite-revit-design-work-design-automation-api-revit) that `attributes.extension.isCompositeDesign` is true in the response of Data Management API. (This idea is from https://github.com/wallabyway/bim360-zip-extract)
    - Extract/download SVF model files from APS Model Derivative service.
 3. A Web server serves extracted/download SVF model files so that we don't need to override the `Autodesk.Viewing.endpoint.getItemApi` like the blog post [Consume AEC data with SVFs on your own server](https://aps.autodesk.com/blog/consume-aec-data-svfs-your-own-server).
 
@@ -130,6 +131,26 @@ This sample is demonstrating the following in a set of Web API:
          }
       ]
       ```
+</details>
+
+<details>
+   <summary>Extract a file from composite Revit Cloud Workshariong model, which will be downloaded as a ZIP package</summary>
+   
+   - Call Web API of this sample like this way
+   - Note 1. The composite Revit file's objectId is `urn:adsk.objects:os.object:wip.dm.prod/977d69b1-43e7-40fa-8ece-6ec4602892f3.rvt`, and then encode it as URL-safe string: `urn%3Aadsk.objects%3Aos.object%3Awip.dm.prod%2F977d69b1-43e7-40fa-8ece-6ec4602892f3.rvt`.
+
+      ```bash
+      curl --location 'http://127.0.0.1:5000/api/extract/urn%3Aadsk.objects%3Aos.object%3Awip.dm.prod%2F977d69b1-43e7-40fa-8ece-6ec4602892f3.rvt/objects' \
+            --header 'Content-Type: application/json' \
+            --data '{
+               "filename": "Host.rvt",    //!<<< the name of the target file from the response of extracting file list above
+               "size": 5398528,           //!<<< the actual file size of the target from the response of extracting file list above
+               "compressedSize": 5399353, //!<<< the compressed file size in the zip of the target from the response of extracting file list above
+               "offset": 5407588          //!<<< the offset in zip central header of the target from the response of extracting file list above
+            }'
+      ```
+
+      Afterward, it will extract and return the file from the zip
 </details>
 
 <details>

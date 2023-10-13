@@ -22,11 +22,9 @@ using Microsoft.AspNetCore.Mvc;
 using System.Collections.Generic;
 using Autodesk.Aps.Models;
 using Autodesk.Aps.Libs;
-using RestSharp;
 using System.IO;
 using System.IO.Compression;
 using Autodesk.Forge;
-using Newtonsoft.Json;
 using System.Net;
 
 namespace Autodesk.Aps.Controllers
@@ -66,7 +64,7 @@ namespace Autodesk.Aps.Controllers
                 return StatusCode((int)HttpStatusCode.InternalServerError, ex.Message);
             }
 
-        
+
             string folderToSave = Path.Combine(this.folderRootToSave, urn);
 
             if (!Directory.Exists(folderToSave))
@@ -193,6 +191,54 @@ namespace Autodesk.Aps.Controllers
                 var decodedObjectId = System.Web.HttpUtility.UrlDecode(objectId);
                 var fileList = await CompositeDesignExtractUtil.ListContents2(decodedObjectId, accessToken);
                 return Ok(fileList);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode((int)HttpStatusCode.InternalServerError, ex);
+            }
+        }
+
+        /// <summary>
+        /// Extract a file from a composite Revit Cloud Worksharing design (i.e. ZIP package)
+        /// </summary>
+        [HttpPost("{objectId}/objects")]
+        public async Task<IActionResult> GetFileFromCompositeDesign([FromRoute] string objectId, [FromQuery] string accessToken, [FromBody] CompositeDesignExtractEntry data)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(objectId))
+                    return StatusCode((int)HttpStatusCode.Forbidden, "Invalid objectId parameter");
+
+                if (string.IsNullOrWhiteSpace(accessToken))
+                {
+                    var token = this.tokenService.InternalToken;
+                    accessToken = token.AccessToken;
+                }
+
+                var decodedObjectId = System.Web.HttpUtility.UrlDecode(objectId);
+                string fileExtractedPath = null;
+                try
+                {
+                    fileExtractedPath = await CompositeDesignExtractUtil.ExtractFile(decodedObjectId, data.Name, data.Size, data.Offset, data.CompressedSize, accessToken);
+                    if (!System.IO.File.Exists(fileExtractedPath))
+                        throw new InvalidOperationException($"Failed to extract {data.Name} from the zip");
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Trace.WriteLine(ex.Message);
+                    return StatusCode((int)HttpStatusCode.BadRequest, $"Failed to extract {data.Name} from the composite Revit Cloud Worksharing design");
+                }
+
+                var cd = new System.Net.Mime.ContentDisposition
+                {
+                    FileName = data.Name,
+                    Inline = false,
+                };
+
+                Response.Headers.Add("Content-Disposition", cd.ToString());
+                var mimeType = MimeMapping.MimeUtility.GetMimeMapping(fileExtractedPath);
+                var fileStream = new FileStream(fileExtractedPath, FileMode.Open, FileAccess.Read, FileShare.None, 4096, FileOptions.DeleteOnClose);
+                return File(fileStream, mimeType);
             }
             catch (Exception ex)
             {
