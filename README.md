@@ -42,7 +42,7 @@ This sample is demonstrating the following in a set of Web API:
 ## Use of the sample
 
 <details>
-   <summary>Configure viewer to load models from proxy</summary>
+   <summary>Configure viewer to load online models through proxy service</summary>
 
    1. Configure viewer endpoint
    2. Initialize your viewer app in this way:
@@ -59,6 +59,28 @@ This sample is demonstrating the following in a set of Web API:
 
          Autodesk.Viewing.Document.load(documentId, onDocumentLoadSuccess, onDocumentLoadFailure);
       });
+      ```
+
+      **Note.** To use this with enterprise WebProxy, please follow the instructions of [Route At Startup with Custom HttpClientHandler](https://github.com/twitchax/AspNetCore.Proxy/tree/333a0115ed7aec4dde7679c97bfb9e0593a0aeca#route-at-startup-with-custom-httpclienthandler) from [AspNetCore.Proxy](https://github.com/twitchax/AspNetCore.Proxy) to add a custom `HttpClientHandler` with proxy settings and specify custom http client name in [Autodesk.Aps/Controllers/ProxyController.cs](Autodesk.Aps/Controllers/ProxyController.cs#L47) by using `HttpProxyOptionsBuilder.Instance.WithHttpClientName(...)`. For example,
+
+      ```Csharp
+      // In ConfigureServices function of Startup.cs
+      services.AddHttpClient("MyEnterpriseWebProxyClient")
+         .ConfigurePrimaryHttpMessageHandler(() => {
+            var webProxyHandler = new HttpClientHandler() {
+               Proxy = new WebProxy("http://proxyerverurl:8099"),
+               //...
+            };
+
+            return webProxyHandler;
+         });
+
+      // In constructor of ProxyController.cs
+      this.httpProxyOptions = HttpProxyOptionsBuilder.Instance
+                              .WithHttpClientName("MyEnterpriseWebProxyClient") //!<<< Add this line
+                              .WithBeforeSend( ... )
+                              .WithHandleFailure( ... )
+                              .build();
       ```
 </details>
 
