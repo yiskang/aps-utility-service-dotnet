@@ -46,7 +46,7 @@ namespace Autodesk.Aps.Models
         /// <summary>
         /// Autodesk APS OAuth scope for non-proxy services
         /// </summary>
-        public string InternalScope { get; set; } = "data:read";
+        public string InternalScope { get; set; } = "data:read data:create data:write";
 
         /// <summary>
         /// Destination uri scheme

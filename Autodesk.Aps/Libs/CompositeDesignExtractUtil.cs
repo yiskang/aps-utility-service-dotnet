@@ -35,25 +35,6 @@ namespace Autodesk.Aps.Libs
 {
     public static class CompositeDesignExtractUtil
     {
-        public class ObjectInfo
-        {
-            public string BucketKey { get; set; }
-            public string ObjectKey { get; set; }
-        }
-
-        public static ObjectInfo ExtractObjectInfo(string objectId)
-        {
-            var result = objectId.Replace("urn:adsk.objects:os.object:", string.Empty).Split('/');
-            var bucketKey = result[0];
-            var objectKey = result[1];
-
-            return new ObjectInfo
-            {
-                BucketKey = bucketKey,
-                ObjectKey = objectKey
-            };
-        }
-
         public static async Task<RestResponse> FetchFileByRangeAsync(string url, int offset, int length)
         {
             var client = new RestClient();
@@ -118,7 +99,7 @@ namespace Autodesk.Aps.Libs
 
         public async static Task<dynamic> GetFileDownloadUrl(string objectId, string accessToken)
         {
-            var objectInfo = ExtractObjectInfo(objectId);
+            var objectInfo = DataManagementUtil.ExtractObjectInfo(objectId);
             // Get object download url via OSS Direct-S3 API
             var objectsApi = new ObjectsApi();
             objectsApi.Configuration.AccessToken = accessToken;
@@ -145,7 +126,7 @@ namespace Autodesk.Aps.Libs
         public async static Task<List<Models.ZipArchiveEntry>> ListContents(string objectId, string accessToken)
         {
             dynamic response = await GetFileDownloadUrl(objectId, accessToken);
-            var objectInfo = ExtractObjectInfo(objectId);
+            var objectInfo = DataManagementUtil.ExtractObjectInfo(objectId);
             var target = response["results"][objectInfo.ObjectKey];
 
             // Fetch ZIP header and footer
@@ -187,7 +168,7 @@ namespace Autodesk.Aps.Libs
         public async static Task<List<ZipEntry>> ListContents2(string objectId, string accessToken)
         {
             dynamic response = await GetFileDownloadUrl(objectId, accessToken);
-            var objectInfo = ExtractObjectInfo(objectId);
+            var objectInfo = DataManagementUtil.ExtractObjectInfo(objectId);
             var target = response["results"][objectInfo.ObjectKey];
 
             // Fetch ZIP header and footer
@@ -224,7 +205,7 @@ namespace Autodesk.Aps.Libs
         public async static Task<string> ExtractFile(string objectId, string filename, int fileSize, int offset, int compressedFileSize, string accessToken)
         {
             dynamic response = await GetFileDownloadUrl(objectId, accessToken);
-            var objectInfo = ExtractObjectInfo(objectId);
+            var objectInfo = DataManagementUtil.ExtractObjectInfo(objectId);
             var target = response["results"][objectInfo.ObjectKey];
 
             // Fetch ZIP header and footer
@@ -251,6 +232,9 @@ namespace Autodesk.Aps.Libs
                         var fileEntry = zip.GetEntry(filename);
                         if (fileEntry == null)
                             throw new InvalidDataException($"Cannot find the `{filename}` in the ZIP");
+
+                        if (File.Exists(fileExtractedPath))
+                            File.Delete(fileExtractedPath);
 
                         var zipInputStream = zip.GetInputStream(fileEntry);
                         using (var streamWriter = File.Create(fileExtractedPath))

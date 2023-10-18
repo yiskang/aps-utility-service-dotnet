@@ -202,12 +202,18 @@ namespace Autodesk.Aps.Controllers
         /// Extract a file from a composite Revit Cloud Worksharing design (i.e. ZIP package)
         /// </summary>
         [HttpPost("{objectId}/objects")]
-        public async Task<IActionResult> GetFileFromCompositeDesign([FromRoute] string objectId, [FromQuery] string accessToken, [FromBody] CompositeDesignExtractEntry data)
+        public async Task<IActionResult> GetFileFromCompositeDesign([FromRoute] string objectId, [FromQuery] string accessToken, [FromBody] CompositeDesignExtractEntry data, [FromQuery] string projectId, [FromQuery] string folderUrn, [FromQuery] bool uploadToDocs = false, [FromQuery] bool renameConflict = false)
         {
             try
             {
+                var filename = data.Name;
+                var filenameWhenConflict = data.Name;
+
                 if (string.IsNullOrWhiteSpace(objectId))
-                    return StatusCode((int)HttpStatusCode.Forbidden, "Invalid objectId parameter");
+                    return StatusCode((int)HttpStatusCode.Forbidden, "Invalid `objectId` parameter");
+
+                if (string.IsNullOrWhiteSpace(filename))
+                    return StatusCode((int)HttpStatusCode.Forbidden, "Invalid `data.name` parameter");
 
                 if (string.IsNullOrWhiteSpace(accessToken))
                 {
@@ -215,30 +221,82 @@ namespace Autodesk.Aps.Controllers
                     accessToken = token.AccessToken;
                 }
 
+                if (uploadToDocs == true)
+                {
+                    if (string.IsNullOrWhiteSpace(projectId) || string.IsNullOrWhiteSpace(folderUrn))
+                        return StatusCode((int)HttpStatusCode.Forbidden, "Invalid `projectId` or `folderUrn` parameter when `uploadToDocs` is true");
+
+                    var itemId = await DataManagementUtil.GetItemIdAsync(projectId, folderUrn, filename, accessToken);
+                    if ((!string.IsNullOrWhiteSpace(itemId)) && (renameConflict == false))
+                        return StatusCode((int)HttpStatusCode.Forbidden, "Invalid `folderUrn` parameter when `renameConflict` is false. Uploading extracted file to the same folder where the original file locates will cause data corruption.");
+
+                    if ((!string.IsNullOrWhiteSpace(itemId)) && (renameConflict == true))
+                    {
+                        var filenameWithoutExt = Path.GetFileNameWithoutExtension(filename);
+                        var fileExt = Path.GetExtension(filename);
+                        filenameWhenConflict = $"{filenameWithoutExt}-extracted{fileExt}";
+                    }
+                }
+                else
+                {
+                    if (!string.IsNullOrWhiteSpace(projectId) || !string.IsNullOrWhiteSpace(folderUrn))
+                        return StatusCode((int)HttpStatusCode.BadRequest, "When specifying `projectId` and `folderUrn` parameter with `uploadToDocs=false` or without `uploadToDocs=true`, this file won't be uploaded to Docs.");
+                }
+
                 var decodedObjectId = System.Web.HttpUtility.UrlDecode(objectId);
                 string fileExtractedPath = null;
                 try
                 {
-                    fileExtractedPath = await CompositeDesignExtractUtil.ExtractFile(decodedObjectId, data.Name, data.Size, data.Offset, data.CompressedSize, accessToken);
+                    fileExtractedPath = await CompositeDesignExtractUtil.ExtractFile(decodedObjectId, filename, data.Size, data.Offset, data.CompressedSize, accessToken);
                     if (!System.IO.File.Exists(fileExtractedPath))
-                        throw new InvalidOperationException($"Failed to extract {data.Name} from the zip");
+                        throw new InvalidOperationException($"Failed to extract {filename} from the zip");
                 }
                 catch (Exception ex)
                 {
                     System.Diagnostics.Trace.WriteLine(ex.Message);
-                    return StatusCode((int)HttpStatusCode.BadRequest, $"Failed to extract {data.Name} from the composite Revit Cloud Worksharing design");
+                    return StatusCode((int)HttpStatusCode.BadRequest, $"Failed to extract {filename} from the composite Revit Cloud Worksharing design");
                 }
 
-                var cd = new System.Net.Mime.ContentDisposition
-                {
-                    FileName = data.Name,
-                    Inline = false,
-                };
-
-                Response.Headers.Add("Content-Disposition", cd.ToString());
-                var mimeType = MimeMapping.MimeUtility.GetMimeMapping(fileExtractedPath);
                 var fileStream = new FileStream(fileExtractedPath, FileMode.Open, FileAccess.Read, FileShare.None, 4096, FileOptions.DeleteOnClose);
-                return File(fileStream, mimeType);
+
+                if (uploadToDocs == false)
+                {
+                    var cd = new System.Net.Mime.ContentDisposition
+                    {
+                        FileName = filename,
+                        Inline = false,
+                    };
+                    Response.Headers.Add("Content-Disposition", cd.ToString());
+                    var mimeType = MimeMapping.MimeUtility.GetMimeMapping(fileExtractedPath);
+
+                    return File(fileStream, mimeType);
+                }
+                else
+                {
+                    using (MemoryStream fileMemoryStream = new MemoryStream())
+                    {
+                        byte[] bytes = new byte[fileStream.Length];
+                        fileStream.Read(bytes, 0, (int)fileStream.Length);
+                        fileMemoryStream.Write(bytes, 0, (int)fileStream.Length);
+
+                        try
+                        {
+                            var objectFilename = renameConflict == true ? filenameWhenConflict : filename;
+                            var storageObjectId = await DataManagementUtil.CreateFileStorage(projectId, folderUrn, objectFilename, accessToken);
+                            var uploadedObjectInfo = await DataManagementUtil.UploadFileAsync(storageObjectId, fileMemoryStream, accessToken);
+                            var fileInfoInDocs = await DataManagementUtil.CreateFileItemOrAppendVersionAsync(projectId, folderUrn, uploadedObjectInfo.ObjectId, objectFilename, accessToken);
+
+                            await fileStream.DisposeAsync();
+
+                            return Ok(fileInfoInDocs);
+                        }
+                        catch (Exception ex)
+                        {
+                            System.Diagnostics.Trace.WriteLine(ex);
+                            return StatusCode((int)HttpStatusCode.Forbidden, "Failed to upload file to Docs");
+                        }
+                    }
+                }
             }
             catch (Exception ex)
             {

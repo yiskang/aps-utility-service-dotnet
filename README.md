@@ -165,14 +165,35 @@ This sample is demonstrating the following in a set of Web API:
       curl --location 'http://127.0.0.1:5000/api/extract/urn%3Aadsk.objects%3Aos.object%3Awip.dm.prod%2F977d69b1-43e7-40fa-8ece-6ec4602892f3.rvt/objects' \
             --header 'Content-Type: application/json' \
             --data '{
-               "filename": "Host.rvt",    //!<<< the name of the target file from the response of extracting file list above
+               "name": "Host.rvt",        //!<<< the name of the target file from the response of extracting file list above
                "size": 5398528,           //!<<< the actual file size of the target from the response of extracting file list above
                "compressedSize": 5399353, //!<<< the compressed file size in the zip of the target from the response of extracting file list above
                "offset": 5407588          //!<<< the offset in zip central header of the target from the response of extracting file list above
             }'
       ```
 
-      Afterward, it will extract and return the file from the zip
+      Afterward, it will extract and return the file from the zip.
+
+      What if you want to upload the file to Docs after extrating it from the composite design, the API call will become the below:
+
+      ```bash
+      curl --location 'http://127.0.0.1:5000/api/extract/urn%3Aadsk.objects%3Aos.object%3Awip.dm.prod%2F977d69b1-43e7-40fa-8ece-6ec4602892f3.rvt/objects?uploadToDocs=true&renameConflict=true&projectId=b.2efa3b98-b895-4380-a820-2b638edd50eaf&folderUrn=urn:adsk.wipprod:fs.folder:co.mgS-lb-BThaTdHnhiN_mbA' \
+            --header 'Content-Type: application/json' \
+            --data '{
+               "name": "Host.rvt",        //!<<< the name of the target file from the response of extracting file list above
+               "size": 5398528,           //!<<< the actual file size of the target from the response of extracting file list above
+               "compressedSize": 5399353, //!<<< the compressed file size in the zip of the target from the response of extracting file list above
+               "offset": 5407588          //!<<< the offset in zip central header of the target from the response of extracting file list above
+            }'
+      ```
+      Notes:
+
+         - **uploadToDocs**: True to tell service to do file upload to BIM360/ACC Docs after the extration is done.
+         - **projectId:** The id of BIM360/ACC project you want to upload the extracted file.
+         - **folderUrn:** The folder id/urn of BIM360/ACC project you want to upload the extracted file.
+         - **renameConflict**: If the upload folder is the same as the original composite Revit Cloud Workshariong model does, this is fatal to set `renameConflict=true`. Otherwise, the upload fille append to the original composite Revit Cloud Workshariong model, which cases the data corruption.
+         
+
 </details>
 
 <details>
