@@ -188,10 +188,10 @@ This sample is demonstrating the following in a set of Web API:
       ```
       Notes:
 
-         - **uploadToDocs**: True to tell service to do file upload to BIM360/ACC Docs after the extration is done.
-         - **projectId:** The id of BIM360/ACC project you want to upload the extracted file.
-         - **folderUrn:** The folder id/urn of BIM360/ACC project you want to upload the extracted file.
-         - **renameConflict**: If the upload folder is the same as the original composite Revit Cloud Workshariong model does, this is fatal to set `renameConflict=true`. Otherwise, the upload fille append to the original composite Revit Cloud Workshariong model, which cases the data corruption.
+      - **uploadToDocs**: True to tell service to do file upload to BIM360/ACC Docs after the extration is done.
+      - **projectId:** The id of BIM360/ACC project you want to upload the extracted file.
+      - **folderUrn:** The folder id/urn of BIM360/ACC project you want to upload the extracted file.
+      - **renameConflict**: If the upload folder is the same as the original composite Revit Cloud Workshariong model does, this is fatal to set `renameConflict=true`. Otherwise, the uploaded fille will be appended to the original composite Revit Cloud Workshariong model, which will cases the data corruption.
          
 
 </details>
