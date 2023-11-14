@@ -61,6 +61,39 @@ namespace Autodesk.Aps.Libs
             };
         }
 
+        public async static Task<dynamic> GetFileDownloadUrl(string objectId, string accessToken)
+        {
+            var objectInfo = DataManagementUtil.ExtractObjectInfo(objectId);
+            // Get object download url via OSS Direct-S3 API
+            var objectsApi = new ObjectsApi();
+            objectsApi.Configuration.AccessToken = accessToken;
+
+            List<PostBatchSignedS3DownloadPayloadItem> items = new List<PostBatchSignedS3DownloadPayloadItem>()
+            {
+                new PostBatchSignedS3DownloadPayloadItem(objectInfo.ObjectKey)
+            };
+
+            PostBatchSignedS3DownloadPayload payload = new PostBatchSignedS3DownloadPayload(items);
+
+            dynamic response = await objectsApi.getS3DownloadURLsAsync(
+                objectInfo.BucketKey,
+                payload
+            );
+
+            return response;
+        }
+
+        public static async Task<RestResponse> FetchFileByRangeAsync(string url, int offset, int length)
+        {
+            var client = new RestClient();
+            var request = new RestRequest(url, Method.Get);
+            var rangeBytes = $"bytes={offset}-{offset + length}";
+            request.AddHeader("Range", rangeBytes);
+
+            var response = await client.ExecuteAsync(request);
+            return response;
+        }
+
         public async static Task<string> CreateFileStorage(string projectId, string folderUrn, string filename, string accessToken)
         {
             ProjectsApi projectsApi = new ProjectsApi();

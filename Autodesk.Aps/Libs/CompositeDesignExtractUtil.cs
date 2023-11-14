@@ -35,17 +35,6 @@ namespace Autodesk.Aps.Libs
 {
     public static class CompositeDesignExtractUtil
     {
-        public static async Task<RestResponse> FetchFileByRangeAsync(string url, int offset, int length)
-        {
-            var client = new RestClient();
-            var request = new RestRequest(url, Method.Get);
-            var rangeBytes = $"bytes={offset}-{offset + length}";
-            request.AddHeader("Range", rangeBytes);
-
-            var response = await client.ExecuteAsync(request);
-            return response;
-        }
-
         /// <summary>
         /// Create a temporary ZIP file
         /// </summary>
@@ -66,11 +55,11 @@ namespace Autodesk.Aps.Libs
                 // Fetch ZIP header and footer
                 int footerOffset = Convert.ToInt32(fileFullSize - chunkSize);
 
-                var zipHeaderResponse = await FetchFileByRangeAsync(downloadURL, 0, chunkSize);
-                var zipFooterResponse = await FetchFileByRangeAsync(downloadURL, footerOffset, chunkSize);
+                var zipHeaderResponse = await DataManagementUtil.FetchFileByRangeAsync(downloadURL, 0, chunkSize);
+                var zipFooterResponse = await DataManagementUtil.FetchFileByRangeAsync(downloadURL, footerOffset, chunkSize);
 
                 if (fileSize.HasValue)
-                    fileResponse = await FetchFileByRangeAsync(downloadURL, fileOffset, fileSize.Value + zipHeaderOffset);
+                    fileResponse = await DataManagementUtil.FetchFileByRangeAsync(downloadURL, fileOffset, fileSize.Value + zipHeaderOffset);
 
                 var zipFilename = "tmp-" + Guid.NewGuid() + ".zip";
                 string zipPath = Path.Combine(Directory.GetCurrentDirectory(), "tmp", zipFilename);
@@ -97,35 +86,13 @@ namespace Autodesk.Aps.Libs
             }
         }
 
-        public async static Task<dynamic> GetFileDownloadUrl(string objectId, string accessToken)
-        {
-            var objectInfo = DataManagementUtil.ExtractObjectInfo(objectId);
-            // Get object download url via OSS Direct-S3 API
-            var objectsApi = new ObjectsApi();
-            objectsApi.Configuration.AccessToken = accessToken;
-
-            List<PostBatchSignedS3DownloadPayloadItem> items = new List<PostBatchSignedS3DownloadPayloadItem>()
-            {
-                new PostBatchSignedS3DownloadPayloadItem(objectInfo.ObjectKey)
-            };
-
-            PostBatchSignedS3DownloadPayload payload = new PostBatchSignedS3DownloadPayload(items);
-
-            dynamic response = await objectsApi.getS3DownloadURLsAsync(
-                objectInfo.BucketKey,
-                payload
-            );
-
-            return response;
-        }
-
         /// <summary>
         /// https://github.com/wallabyway/bim360-zip-extract/blob/master/server.js#L49C18-L49C31
         /// https://github.com/wallabyway/bim360-zip-extract/blob/master/server.js#L155
         /// </summary>
         public async static Task<List<Models.ZipArchiveEntry>> ListContents(string objectId, string accessToken)
         {
-            dynamic response = await GetFileDownloadUrl(objectId, accessToken);
+            dynamic response = await DataManagementUtil.GetFileDownloadUrl(objectId, accessToken);
             var objectInfo = DataManagementUtil.ExtractObjectInfo(objectId);
             var target = response["results"][objectInfo.ObjectKey];
 
@@ -167,7 +134,7 @@ namespace Autodesk.Aps.Libs
         /// </summary>
         public async static Task<List<ZipEntry>> ListContents2(string objectId, string accessToken)
         {
-            dynamic response = await GetFileDownloadUrl(objectId, accessToken);
+            dynamic response = await DataManagementUtil.GetFileDownloadUrl(objectId, accessToken);
             var objectInfo = DataManagementUtil.ExtractObjectInfo(objectId);
             var target = response["results"][objectInfo.ObjectKey];
 
@@ -204,7 +171,7 @@ namespace Autodesk.Aps.Libs
         /// </summary>
         public async static Task<string> ExtractFile(string objectId, string filename, int fileSize, int offset, int compressedFileSize, string accessToken)
         {
-            dynamic response = await GetFileDownloadUrl(objectId, accessToken);
+            dynamic response = await DataManagementUtil.GetFileDownloadUrl(objectId, accessToken);
             var objectInfo = DataManagementUtil.ExtractObjectInfo(objectId);
             var target = response["results"][objectInfo.ObjectKey];
 
