@@ -232,11 +232,18 @@ namespace Autodesk.Aps.Libs
                 dynamic errorContent = JsonConvert.DeserializeObject<JObject>(ex.ErrorContent);
                 if (errorContent.Errors?[0].Status == "409")//Conflict
                 {
-                    //Get ItemId of our file
-                    itemId = await GetItemIdAsync(projectId, folderUrn, filename, accessToken);
+                    try
+                    {
+                        //Get ItemId of our file
+                        itemId = await GetItemIdAsync(projectId, folderUrn, filename, accessToken);
 
-                    //Lets create a new version
-                    versionId = await UpdateVersionAsync(projectId, itemId, objectId, filename, accessToken);
+                        //Lets create a new version
+                        versionId = await UpdateVersionAsync(projectId, itemId, objectId, filename, accessToken);
+                    }
+                    catch(Exception ex2)
+                    {
+                        System.Diagnostics.Trace.WriteLine("Failed to append new file version", ex2.Message);
+                    }
                 }
             }
 
