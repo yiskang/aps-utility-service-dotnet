@@ -217,6 +217,27 @@ namespace Autodesk.Aps.Libs
 
             string itemId = "";
             string versionId = "";
+            var items = await GetFolderItems(projectId, folderUrn, accessToken).ConfigureAwait(false);
+            var item = items.Cast<KeyValuePair<string, dynamic>>().FirstOrDefault(item =>
+                item.Value.attributes.displayName.Equals(filename, StringComparison.OrdinalIgnoreCase));
+            FileInfoInDocs fileInfo;
+            if (item.Value != null)
+            {
+                //Get ItemId of our file
+                itemId = item.Value.id;
+
+                //Lets create a new version
+                versionId = await UpdateVersionAsync(projectId, itemId, objectId, filename, accessToken).ConfigureAwait(false);
+
+                fileInfo = new FileInfoInDocs
+                {
+                    ProjectId = projectId,
+                    FolderUrn = folderUrn,
+                    ItemId = itemId,
+                    VersionId = versionId
+                };
+                return fileInfo;
+            }
             try
             {
                 DynamicJsonResponse postItemJsonResponse = await itemsApi.PostItemAsync(projectId, itemBody);
@@ -252,7 +273,7 @@ namespace Autodesk.Aps.Libs
                 throw new InvalidOperationException("Failed to Create/Append file version");
             }
 
-            var fileInfo = new FileInfoInDocs
+            fileInfo = new FileInfoInDocs
             {
                 ProjectId = projectId,
                 FolderUrn = folderUrn,
