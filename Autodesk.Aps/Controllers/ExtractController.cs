@@ -51,7 +51,7 @@ namespace Autodesk.Aps.Controllers
             try
             {
                 if (string.IsNullOrWhiteSpace(urn))
-                    return StatusCode((int)HttpStatusCode.Forbidden, "Invalid URN parameter");
+                    return StatusCode((int)HttpStatusCode.Forbidden, new ErrorMessage("Invalid URN parameter", (int)HttpStatusCode.Forbidden));
 
                 if (string.IsNullOrWhiteSpace(accessToken))
                 {
@@ -180,7 +180,7 @@ namespace Autodesk.Aps.Controllers
             try
             {
                 if (string.IsNullOrWhiteSpace(objectId))
-                    return StatusCode((int)HttpStatusCode.Forbidden, "Invalid objectId parameter");
+                    return StatusCode((int)HttpStatusCode.Forbidden, new ErrorMessage("Invalid objectId parameter", (int)HttpStatusCode.Forbidden));
 
                 if (string.IsNullOrWhiteSpace(accessToken))
                 {
@@ -210,10 +210,10 @@ namespace Autodesk.Aps.Controllers
                 var filenameWhenConflict = data.Name;
 
                 if (string.IsNullOrWhiteSpace(objectId))
-                    return StatusCode((int)HttpStatusCode.Forbidden, "Invalid `objectId` parameter");
+                    return StatusCode((int)HttpStatusCode.Forbidden, new ErrorMessage("Invalid `objectId` parameter", (int)HttpStatusCode.Forbidden));
 
                 if (string.IsNullOrWhiteSpace(filename))
-                    return StatusCode((int)HttpStatusCode.Forbidden, "Invalid `data.name` parameter");
+                    return StatusCode((int)HttpStatusCode.Forbidden, new ErrorMessage("Invalid `data.name` parameter", (int)HttpStatusCode.Forbidden));
 
                 if (string.IsNullOrWhiteSpace(accessToken))
                 {
@@ -224,23 +224,27 @@ namespace Autodesk.Aps.Controllers
                 if (uploadToDocs == true)
                 {
                     if (string.IsNullOrWhiteSpace(projectId) || string.IsNullOrWhiteSpace(folderUrn))
-                        return StatusCode((int)HttpStatusCode.Forbidden, "Invalid `projectId` or `folderUrn` parameter when `uploadToDocs` is true");
+                        return StatusCode((int)HttpStatusCode.Forbidden, new ErrorMessage("Invalid `projectId` or `folderUrn` parameter when `uploadToDocs` is true", (int)HttpStatusCode.Forbidden));
 
-                    var itemId = await DataManagementUtil.GetItemIdAsync(projectId, folderUrn, filename, accessToken);
-                    if ((!string.IsNullOrWhiteSpace(itemId)) && (renameConflict == false))
-                        return StatusCode((int)HttpStatusCode.Forbidden, "Invalid `folderUrn` parameter when `renameConflict` is false. Uploading extracted file to the same folder where the original file locates will cause data corruption.");
-
-                    if ((!string.IsNullOrWhiteSpace(itemId)) && (renameConflict == true))
+                    var itemInfo = await DataManagementUtil.GetItemInfoAsync(projectId, folderUrn, filename, accessToken);
+                    if (!string.IsNullOrWhiteSpace(itemInfo.Id) && (itemInfo.IsCloudModel == true))
                     {
-                        var filenameWithoutExt = Path.GetFileNameWithoutExtension(filename);
-                        var fileExt = Path.GetExtension(filename);
-                        filenameWhenConflict = $"{filenameWithoutExt}-extracted{fileExt}";
+                        if (renameConflict == false)
+                        {
+                            return StatusCode((int)HttpStatusCode.Forbidden, new ErrorMessage("Invalid `folderUrn` parameter when `renameConflict` is false. Uploading extracted file to the same folder where the original file locates will cause data corruption.", (int)HttpStatusCode.Forbidden));
+                        }
+                        else
+                        {
+                            var filenameWithoutExt = Path.GetFileNameWithoutExtension(filename);
+                            var fileExt = Path.GetExtension(filename);
+                            filenameWhenConflict = $"{filenameWithoutExt}-extracted{fileExt}";
+                        }
                     }
                 }
                 else
                 {
                     if (!string.IsNullOrWhiteSpace(projectId) || !string.IsNullOrWhiteSpace(folderUrn))
-                        return StatusCode((int)HttpStatusCode.BadRequest, "When specifying `projectId` and `folderUrn` parameter with `uploadToDocs=false` or without `uploadToDocs=true`, this file won't be uploaded to Docs.");
+                        return StatusCode((int)HttpStatusCode.BadRequest, new ErrorMessage("When specifying `projectId` and `folderUrn` parameter with `uploadToDocs=false` or without `uploadToDocs=true`, this file won't be uploaded to Docs.", (int)HttpStatusCode.BadRequest));
                 }
 
                 var decodedObjectId = System.Web.HttpUtility.UrlDecode(objectId);
@@ -254,7 +258,7 @@ namespace Autodesk.Aps.Controllers
                 catch (Exception ex)
                 {
                     System.Diagnostics.Trace.WriteLine(ex.Message);
-                    return StatusCode((int)HttpStatusCode.BadRequest, $"Failed to extract {filename} from the composite Revit Cloud Worksharing design");
+                    return StatusCode((int)HttpStatusCode.BadRequest, new ErrorMessage($"Failed to extract {filename} from the composite Revit Cloud Worksharing design", (int)HttpStatusCode.BadRequest));
                 }
 
                 var fileStream = new FileStream(fileExtractedPath, FileMode.Open, FileAccess.Read, FileShare.None, 4096, FileOptions.DeleteOnClose);
@@ -293,7 +297,7 @@ namespace Autodesk.Aps.Controllers
                         catch (Exception ex)
                         {
                             System.Diagnostics.Trace.WriteLine(ex);
-                            return StatusCode((int)HttpStatusCode.Forbidden, "Failed to upload file to Docs");
+                            return StatusCode((int)HttpStatusCode.Forbidden, new ErrorMessage("Failed to upload file to Docs", (int)HttpStatusCode.Forbidden));
                         }
                     }
                 }

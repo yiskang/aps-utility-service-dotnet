@@ -229,8 +229,8 @@ namespace Autodesk.Aps.Libs
             catch (Forge.Client.ApiException ex)
             {
                 //we met a conflict
-                dynamic errorContent = JsonConvert.DeserializeObject<JObject>(ex.ErrorContent);
-                if (errorContent.Errors?[0].Status == "409")//Conflict
+                var errorContent = JsonConvert.DeserializeObject<JObject>(ex.ErrorContent);
+                if (errorContent.errors?[0].status == "409")//Conflict
                 {
                     try
                     {
@@ -240,7 +240,7 @@ namespace Autodesk.Aps.Libs
                         //Lets create a new version
                         versionId = await UpdateVersionAsync(projectId, itemId, objectId, filename, accessToken);
                     }
-                    catch(Exception ex2)
+                    catch (Exception ex2)
                     {
                         System.Diagnostics.Trace.WriteLine("Failed to append new file version", ex2.Message);
                     }
@@ -265,11 +265,21 @@ namespace Autodesk.Aps.Libs
 
         public async static Task<string> GetItemIdAsync(string projectId, string folderUrn, string filename, string accessToken)
         {
+           var itemInfo = await GetItemInfoAsync(projectId, folderUrn, filename, accessToken);
+            return itemInfo.Id;
+        }
+
+        public async static Task<dynamic> GetItemInfoAsync(string projectId, string folderUrn, string filename, string accessToken)
+        {
             FoldersApi foldersApi = new FoldersApi();
             foldersApi.Configuration.AccessToken = accessToken;
             DynamicDictionaryItems itemList = await GetFolderItems(projectId, folderUrn, accessToken);
             var item = itemList.Cast<KeyValuePair<string, dynamic>>().FirstOrDefault(item => item.Value.attributes.displayName.Equals(filename, StringComparison.OrdinalIgnoreCase));
-            return item.Value?.Id;
+            return new
+            {
+                Id = item.Value?.id,
+                IsCloudModel = item.Value?.attributes.extension.type == "items:autodesk.bim360:C4RModel"
+            };
         }
 
         private static async Task<string> UpdateVersionAsync(string projectId, string itemId, string objectId, string filename, string accessToken)
@@ -332,7 +342,7 @@ namespace Autodesk.Aps.Libs
             dynamic folderContents = await foldersApi.GetFolderContentsAsync(projectId,
                                                        folderId,
                                                        filterType: new List<string>() { "items" },
-                                                       filterExtensionType: new List<string>() { "items:autodesk.bim360:File" }
+                                                       filterExtensionType: new List<string>() { "items:autodesk.bim360:File", "items:autodesk.bim360:C4RModel" }
             );
 
             var folderData = new DynamicDictionaryItems(folderContents.data);
