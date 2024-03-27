@@ -143,7 +143,7 @@ namespace Autodesk.Aps.Libs
             var cloudFrontSignatureName = "CloudFront-Signature";
 
             var cloudFrontCookies = response.Headers
-                                    .Where(x => x.Name == "Set-Cookie")
+                                    .Where(x => x.Name.ToLower() == "set-cookie")
                                     .Select(x => x.Value)
                                     .Cast<string>()
                                     .ToList();
