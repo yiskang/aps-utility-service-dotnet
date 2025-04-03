@@ -89,6 +89,8 @@ namespace Autodesk.Aps
                     .AllowCredentials()
             );
 
+            app.UseWebSockets();
+
             app.UseRouting();
             app.UseEndpoints(endpoints => endpoints.MapControllers());
         }

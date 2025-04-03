@@ -28,7 +28,7 @@ using Microsoft.AspNetCore.Http.Extensions;
 using Newtonsoft.Json;
 using AspNetCore.Proxy;
 using Autodesk.Aps.Models;
-using Microsoft.Extensions.Hosting;
+using System;
 
 namespace Autodesk.Aps.Controllers
 {
@@ -39,6 +39,7 @@ namespace Autodesk.Aps.Controllers
         readonly ApsTokenService tokenService;
         readonly ApsServiceOptions apsProxyConfig;
         readonly HttpProxyOptions httpProxyOptions;
+        readonly WsProxyOptions wsProxyOptions;
 
         public ProxyController(ApsTokenService tokenService, IOptions<ApsServiceOptions> apsOpts)
         {
@@ -68,6 +69,26 @@ namespace Autodesk.Aps.Controllers
                                 };
                                 await context.Response.WriteAsync(JsonConvert.SerializeObject(result));
                             }).Build();
+
+            this.wsProxyOptions = WsProxyOptionsBuilder.Instance
+                .WithBeforeConnect((context, wso) =>
+                {
+                    var token = this.tokenService.Token;
+                    wso.SetRequestHeader("X-Forwarded-Host", context.Request.Host.Host);
+                    wso.SetRequestHeader("Authorization", new AuthenticationHeaderValue("Bearer", token.AccessToken).ToString());
+
+                    return Task.CompletedTask;
+                })
+                .WithHandleFailure(async (context, exception) =>
+                {
+                    context.Response.StatusCode = 599;
+                    var result = new
+                    {
+                        message = "Request cannot be proxied",
+                        reason = exception.ToString()
+                    };
+                    await context.Response.WriteAsync(JsonConvert.SerializeObject(result));
+                }).Build();
         }
 
         [Route("{**rest}")]
@@ -75,7 +96,7 @@ namespace Autodesk.Aps.Controllers
         {
             var apsConfig = this.apsProxyConfig;
 
-            HostString host = rest.Contains("manifest") ? apsConfig.Host : apsConfig.DerivativeHost;
+            HostString host = rest.Contains("manifest") && !rest.Contains("modeldata") ? apsConfig.Host : apsConfig.DerivativeHost;
             var apsURL = UriHelper.BuildAbsolute(apsConfig.Scheme, host);
 
             var queries = this.Request.QueryString;
@@ -84,6 +105,33 @@ namespace Autodesk.Aps.Controllers
                 return this.HttpProxyAsync($"{apsURL}{rest}{queries.Value}", this.httpProxyOptions);
             }
             return this.HttpProxyAsync($"{apsURL}{rest}", this.httpProxyOptions);
+        }
+
+        [Route("cdnws")]
+        public Task ProxyWs()
+        {
+            var apsConfig = this.apsProxyConfig;
+            var path = this.Request.Path;
+
+            var request = this.Request;
+
+            var hostUrl = request.Host.ToUriComponent();
+            var pathBase = request.PathBase.ToUriComponent();
+
+            HostString host = apsConfig.DerivativeHost;
+
+            var pathResult = path.ToString().Split('/');
+
+            string rest = String.Join('/', pathResult.Take(3));
+            rest = path.ToString().Replace(rest, "");
+            var apsWsURL = UriHelper.BuildAbsolute("wss", host, rest);
+
+            var queries = this.Request.QueryString;
+            if (queries.HasValue)
+            {
+                return this.WsProxyAsync($"{apsWsURL}{queries.Value}", this.wsProxyOptions);
+            }
+            return this.WsProxyAsync(apsWsURL, this.wsProxyOptions);
         }
     }
 }

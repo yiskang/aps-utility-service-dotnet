@@ -9,7 +9,7 @@
 
 This sample is demonstrating the following in a set of Web API:
 
-1. A proxy server with [AspNetCore.Proxy](https://github.com/twitchax/AspNetCore.Proxy) to forward all requests from the APS Viewer to this backend without showing access token in your viewer frontend for viewing SVF model (not SVF2).
+1. A proxy server with [AspNetCore.Proxy](https://github.com/twitchax/AspNetCore.Proxy) to forward all requests from the APS Viewer to this backend without showing access token in your viewer frontend for viewing both SVF & SVF2 model.
 2. A utility service of the below by single API call
    - Extract file list from composite [Revit Cloud Workshariong model](https://aps.autodesk.com/blog/make-composite-revit-design-work-design-automation-api-revit) that `attributes.extension.isCompositeDesign` is true in the response of Data Management API. (This idea is from https://github.com/wallabyway/bim360-zip-extract)
    - Extract a file from composite [Revit Cloud Workshariong model](https://aps.autodesk.com/blog/make-composite-revit-design-work-design-automation-api-revit) that `attributes.extension.isCompositeDesign` is true in the response of Data Management API. (This idea is from https://github.com/wallabyway/bim360-zip-extract)
@@ -49,14 +49,14 @@ This sample is demonstrating the following in a set of Web API:
 
       ```JavaScript
       const options = {
-         env: 'AutodeskProduction',
-         shouldInitializeAuth: false
+         env: 'AutodeskProduction2',
+         api: 'streamingV2',
+         useCookie: false,
+         shouldInitializeAuth: false,
+         endpoint: 'http://127.0.0.1:5000/api/proxy',
       };
 
       Autodesk.Viewing.Initializer( options, () => {
-         // Change derivative endpoint to Proxy endpoint
-         Autodesk.Viewing.endpoint.setEndpointAndApi('http://127.0.0.1:5000/api/proxy', 'derivativeV2');
-
          Autodesk.Viewing.Document.load(documentId, onDocumentLoadSuccess, onDocumentLoadFailure);
       });
       ```
