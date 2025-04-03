@@ -59,6 +59,17 @@ namespace Autodesk.Aps.Models
             }
         }
 
+                /// <summary>
+        /// Destination uri scheme for WebSocket
+        /// </summary>
+        public string SchemeWs
+        {
+            get
+            {
+                return "wss";
+            }
+        }
+
         /// <summary>
         /// Destination uri host
         /// </summary>

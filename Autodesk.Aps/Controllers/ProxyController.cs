@@ -124,7 +124,7 @@ namespace Autodesk.Aps.Controllers
 
             string rest = String.Join('/', pathResult.Take(3));
             rest = path.ToString().Replace(rest, "");
-            var apsWsURL = UriHelper.BuildAbsolute("wss", host, rest);
+            var apsWsURL = UriHelper.BuildAbsolute(apsConfig.SchemeWs, host, rest);
 
             var queries = this.Request.QueryString;
             if (queries.HasValue)

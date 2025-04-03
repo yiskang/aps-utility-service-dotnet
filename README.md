@@ -1,5 +1,5 @@
 
-![.NET](https://img.shields.io/badge/.NET-7.0-blue.svg)
+![.NET](https://img.shields.io/badge/.NET-8.0-blue.svg)
 ![Platforms](https://img.shields.io/badge/platform-windows%20%7C%20osx%20%7C%20linux-lightgray.svg)
 [![License](http://img.shields.io/:license-mit-blue.svg)](http://opensource.org/licenses/MIT)
 
@@ -18,7 +18,7 @@ This sample is demonstrating the following in a set of Web API:
 
 ## Requirements
 
-* .net 7.0 or later
+* .net 8.0 or later
 
 <a name="setup"></a>
 
